@@ -1,0 +1,110 @@
+version: '3.9'
+
+services:
+
+  http:
+    container_name: http_server
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: http_server
+    ports:
+      - 8080:8080
+    networks:
+      - services_network
+    depends_on:
+      - user
+      - details
+    environment:
+      - USER_SERVER=user
+      - USER_PORT=50051
+      - DETAILS_SERVER=details
+      - DETAILS_PORT=50051
+
+
+  user:
+    container_name: user_server
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: grpc_user_server
+    expose:
+      - 50051
+    networks:
+      - services_network
+      - mysql_network
+    depends_on:
+      - mysqldb
+    environment:
+      - DB_HOST=mysqldb
+      - DB_PORT=3306
+      - DB_NAME=grpc_user
+      - DB_USER=admin
+      - DB_PASSWORD=password
+
+
+  details:
+    container_name: details_server
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: grpc_details_server
+    expose:
+      - 50051
+    networks:
+      - services_network
+      - mongo_network
+    depends_on:
+      - mongodb
+    environment:
+      - DB_HOST=mongodb
+      - DB_PORT=27017
+      - DB_NAME=grpc_details
+      - DB_USER=admin
+      - DB_PASSWORD=password
+
+
+  mongodb:
+    image: mongo
+    container_name: mongodb_server
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=grpc_details
+    volumes:
+      - mongo_db:/data/db
+    networks:
+      - mongo_network
+
+
+  mysqldb:
+    image: mysql
+    container_name: mysqldb_server
+    environment:
+      - MYSQL_ROOT_PASSWORD=secret
+      - MYSQL_DATABASE=grpc_user
+      - MYSQL_USER=admin
+      - MYSQL_PASSWORD=password
+    volumes:
+      - mysql_db:/var/lib/mysql
+      - ./config/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - mysql_network
+
+
+volumes:
+  mysql_db:
+    name: mysql
+  mongo_db:
+    name: mongo
+
+networks:
+  services_network:
+    driver: bridge
+    name: services
+  mongo_network:
+    driver: bridge
+    name: mongo
+  mysql_network:
+    driver: bridge
+    name: mysql
