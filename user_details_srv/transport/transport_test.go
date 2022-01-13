@@ -126,7 +126,7 @@ func TestGetUserDetails(t *testing.T) {
 			}
 
 			// act
-			mock_srv.On("GetUserDetails", ctx, int(tc.data.GetUserId())).Return(tc.srv_res, tc.err)
+			mock_srv.On("GetUserDetails", ctx, int(tc.data.GetUserId())).Return(tc.srv_res, tc.srv_err)
 			res, err := grpc_service.GetUserDetails(ctx, tc.data)
 
 			// assert
@@ -179,7 +179,7 @@ func TestDeleteUserDetails(t *testing.T) {
 			}
 
 			// act
-			mock_srv.On("DeleteUserDetails", ctx, int(tc.data.GetUserId())).Return(tc.srv_res, tc.err)
+			mock_srv.On("DeleteUserDetails", ctx, int(tc.data.GetUserId())).Return(tc.srv_res, tc.srv_err)
 			res, err := grpc_service.DeleteUserDetails(ctx, tc.data)
 
 			// assert
