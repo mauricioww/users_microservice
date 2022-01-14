@@ -1,0 +1,21 @@
+name: Go testing
+
+on: 
+  push:
+    branches: [ v1-develop, v2-develop ]
+  pull_request:
+    branches: [ v1, v2 ]
+
+jobs:
+  testing:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Set up Golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17.3
+
+      - name: Trigger tests
+        run: go test ./... -v -cover
