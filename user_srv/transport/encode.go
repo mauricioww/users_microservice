@@ -2,11 +2,14 @@ package transport
 
 type (
 	CreateUserResponse struct {
-		Id int
+		Id       int
+		Email    string
+		Password string
+		Age      int
 	}
 
 	AuthenticateResponse struct {
-		Id int
+		Success bool
 	}
 
 	UpdateUserResponse struct {

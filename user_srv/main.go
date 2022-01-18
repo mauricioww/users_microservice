@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/caarlos0/env/v6"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	_ "github.com/go-sql-driver/mysql"
@@ -20,11 +19,17 @@ import (
 )
 
 func main() {
-	cts := constants{}
-
-	if err := env.Parse(&cts); err != nil {
-		fmt.Printf("%+v\n", err)
+	cts := constants{
+		DbHost: "127.0.0.1",
+		DbPort: 3306,
+		DbName: "gateway",
+		DbUser: "mauricio",
+		DbPwd:  "password",
 	}
+
+	// if err := env.Parse(&cts); err != nil {
+	// 	fmt.Printf("%+v\n", err)
+	// }
 
 	var logger log.Logger
 	{
@@ -92,9 +97,9 @@ func main() {
 }
 
 type constants struct {
-	DbUser string `env:"DB_USER,required"`
-	DbPwd  string `env:"DB_PASSWORD,required"`
 	DbHost string `env:"DB_HOST,required"`
 	DbPort int    `env:"DB_PORT" envDefault:"3306"`
 	DbName string `env:"DB_NAME" envDefault:"grpc_user"`
+	DbUser string `env:"DB_USER,required"`
+	DbPwd  string `env:"DB_PASSWORD,required"`
 }
