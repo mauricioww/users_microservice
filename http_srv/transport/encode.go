@@ -12,7 +12,7 @@ type (
 	}
 
 	AuthenticateResponse struct {
-		Token string `json:"token"`
+		Success bool `json:"token"`
 	}
 
 	UpdateUserResponse struct {

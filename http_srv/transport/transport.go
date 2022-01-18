@@ -3,12 +3,9 @@ package transport
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
-	"github.com/dgrijalva/jwt-go"
 	gokit_http "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/mauricioww/user_microsrv/errors"
@@ -20,7 +17,6 @@ func NewHTTPServer(ctx context.Context, http_endpoints HttpEndpoints) http.Handl
 	root.Use(middleware)
 
 	user_router := root.PathPrefix("/users").Subrouter()
-	// user_router.Use(authMiddleware)
 
 	opt := gokit_http.ServerOption(gokit_http.ServerErrorEncoder(encodeError))
 
@@ -52,7 +48,7 @@ func NewHTTPServer(ctx context.Context, http_endpoints HttpEndpoints) http.Handl
 		opt,
 	))
 
-	root.Methods("GET").Path("/auth").Handler(gokit_http.NewServer(
+	root.Methods("POST").Path("/auth").Handler(gokit_http.NewServer(
 		http_endpoints.Authenticate,
 		decodeAuthenticateRequest,
 		encodeResponse,
@@ -66,38 +62,6 @@ func middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		rw.Header().Add("Content-Type", "application/json")
 		next.ServeHTTP(rw, r)
-	})
-}
-
-func authMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		header_token := strings.Split(r.Header.Get("Authorization"), "Bearer ")
-
-		if len(header_token) != 2 {
-			rw.WriteHeader(http.StatusUnauthorized)
-			res := map[string]string{"error": "No Auth Token!"}
-			json.NewEncoder(rw).Encode(res)
-
-		} else {
-			jwt_token := header_token[1]
-			token, err := jwt.Parse(jwt_token, func(token *jwt.Token) (interface{}, error) {
-				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, fmt.Errorf("Unexpected signing method %v", token.Header["algo"])
-				}
-				return []byte("this_is_a_secret_shhh"), nil
-			})
-
-			if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-				fmt.Println(claims)
-				next.ServeHTTP(rw, r)
-			} else {
-				fmt.Println(err)
-				rw.WriteHeader(http.StatusUnauthorized)
-				res := map[string]string{"error": "Invalid Token!"}
-				json.NewEncoder(rw).Encode(res)
-			}
-
-		}
 	})
 }
 

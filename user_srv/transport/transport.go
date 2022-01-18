@@ -94,7 +94,7 @@ func decodeAuthenticateRequest(_ context.Context, request interface{}) (interfac
 func encodeAuthenticateResponse(_ context.Context, response interface{}) (interface{}, error) {
 	res := response.(AuthenticateResponse)
 
-	return &userpb.AuthenticateResponse{UserId: int32(res.Id)}, nil
+	return &userpb.AuthenticateResponse{Success: res.Success}, nil
 }
 
 func decodeUpdateUserRequest(_ context.Context, request interface{}) (interface{}, error) {

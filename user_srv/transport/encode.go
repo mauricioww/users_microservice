@@ -6,7 +6,7 @@ type (
 	}
 
 	AuthenticateResponse struct {
-		Id int
+		Success bool
 	}
 
 	UpdateUserResponse struct {

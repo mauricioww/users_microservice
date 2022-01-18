@@ -113,7 +113,7 @@ func TestAuthenticate(t *testing.T) {
 	test_cases := []struct {
 		test_name string
 		data      entities.Session
-		res       int
+		res       bool
 		err       error
 	}{
 		{
@@ -122,7 +122,7 @@ func TestAuthenticate(t *testing.T) {
 				Email:    "fake_email@email.com",
 				Password: "fake_password",
 			},
-			res: 1,
+			res: true,
 			err: nil,
 		},
 		{
@@ -130,7 +130,6 @@ func TestAuthenticate(t *testing.T) {
 			data: entities.Session{
 				Password: "fake_password",
 			},
-			res: -1,
 			err: status.Error(codes.FailedPrecondition, "Missing field 'email'"),
 		},
 		{
@@ -138,7 +137,6 @@ func TestAuthenticate(t *testing.T) {
 			data: entities.Session{
 				Email: "fake_email@email.com",
 			},
-			res: -1,
 			err: status.Error(codes.FailedPrecondition, "Missing field 'password'"),
 		},
 		{
@@ -147,7 +145,6 @@ func TestAuthenticate(t *testing.T) {
 				Email:    "no_real@email.com",
 				Password: "fake_password",
 			},
-			res: -1,
 			err: status.Error(codes.NotFound, "User not found"),
 		},
 		{
@@ -156,7 +153,6 @@ func TestAuthenticate(t *testing.T) {
 				Email:    "user@email.com",
 				Password: "password",
 			},
-			res: -1,
 			err: status.Error(codes.Unauthenticated, "Password or email error"),
 		},
 	}
@@ -172,7 +168,7 @@ func TestAuthenticate(t *testing.T) {
 				Password: tc.data.Password,
 			}
 			if tc.err == nil {
-				grpc_res = &userpb.AuthenticateResponse{UserId: int32(tc.res)}
+				grpc_res = &userpb.AuthenticateResponse{Success: tc.res}
 			}
 
 			// act

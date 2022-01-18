@@ -111,7 +111,7 @@ func TestAuthenticate(t *testing.T) {
 		test_name  string
 		body       string
 		data       transport.AuthenticateRequest
-		res        string
+		res        bool
 		err        error
 		httpStatus int
 	}{
@@ -126,7 +126,7 @@ func TestAuthenticate(t *testing.T) {
 				Email:    "example@email.com",
 				Password: "querty",
 			},
-			res:        "jwt_token",
+			res:        true,
 			err:        nil,
 			httpStatus: 200,
 		},
@@ -181,7 +181,7 @@ func TestAuthenticate(t *testing.T) {
 			// act
 			srv_mock.On("Authenticate", mock.Anything, tc.data.Email, tc.data.Password).Return(tc.res, tc.err)
 
-			req, _ := http.NewRequest("GET", server.URL+"/auth", strings.NewReader(tc.body))
+			req, _ := http.NewRequest("POST", server.URL+"/auth", strings.NewReader(tc.body))
 			res, _ := http.DefaultClient.Do(req)
 
 			// assert

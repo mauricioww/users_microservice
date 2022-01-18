@@ -81,7 +81,7 @@ func TestAuthenticate(t *testing.T) {
 		data      *entities.Session
 		repo_pwd  string
 		repo_err  error
-		res       int
+		res       bool
 		err       error
 	}{
 		{
@@ -90,6 +90,7 @@ func TestAuthenticate(t *testing.T) {
 				Email:    "user@email.com",
 				Password: "secret",
 			},
+			res:      true,
 			repo_pwd: "secret",
 		},
 		{
@@ -97,7 +98,6 @@ func TestAuthenticate(t *testing.T) {
 			data: &entities.Session{
 				Email: "user@email.com",
 			},
-			res: -1,
 			err: errors.NewBadRequestPasswordError(),
 		},
 		{
@@ -105,7 +105,6 @@ func TestAuthenticate(t *testing.T) {
 			data: &entities.Session{
 				Password: "password",
 			},
-			res: -1,
 			err: errors.NewBadRequestEmailError(),
 		},
 		{
@@ -116,7 +115,6 @@ func TestAuthenticate(t *testing.T) {
 			},
 			repo_pwd: "password",
 			repo_err: errors.NewUserNotFoundError(),
-			res:      -1,
 			err:      errors.NewUserNotFoundError(),
 		},
 		{
@@ -126,7 +124,6 @@ func TestAuthenticate(t *testing.T) {
 				Password: "password",
 			},
 			repo_pwd: "incorrect_password",
-			res:      -1,
 			err:      errors.NewUnauthenticatedError(),
 		},
 	}
