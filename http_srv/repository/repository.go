@@ -13,7 +13,7 @@ import (
 
 type HttpRepository interface {
 	CreateUser(ctx context.Context, user entities.User) (int, error)
-	Authenticate(ctx context.Context, session entities.Session) (int, error)
+	Authenticate(ctx context.Context, session entities.Session) (bool, error)
 	UpdateUser(ctx context.Context, user entities.UserUpdate) (bool, error)
 	GetUser(ctx context.Context, id int) (entities.User, error)
 	DeleteUser(ctx context.Context, id int) (bool, error)
@@ -72,9 +72,8 @@ func (r *httpRepository) CreateUser(ctx context.Context, user entities.User) (in
 	return res, nil
 }
 
-func (r *httpRepository) Authenticate(ctx context.Context, session entities.Session) (int, error) {
+func (r *httpRepository) Authenticate(ctx context.Context, session entities.Session) (bool, error) {
 	logger := log.With(r.logger, "method", "authenticate_user")
-	res := -1
 
 	auth_req := userpb.AuthenticateRequest{
 		Email:    session.Email,
@@ -84,11 +83,9 @@ func (r *httpRepository) Authenticate(ctx context.Context, session entities.Sess
 
 	if err != nil {
 		level.Error(logger).Log("err_user", err)
-	} else {
-		res = int(auth_res.GetUserId())
 	}
 
-	return res, err
+	return auth_res.GetSuccess(), err
 }
 
 func (r *httpRepository) UpdateUser(ctx context.Context, user entities.UserUpdate) (bool, error) {

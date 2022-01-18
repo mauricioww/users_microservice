@@ -37,7 +37,7 @@ func makeAuthenticateEndpoint(srv service.GrpcUserService) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req, _ := request.(AuthenticateRequest)
 		res, err := srv.Authenticate(ctx, req.Email, req.Password)
-		return AuthenticateResponse{Id: res}, err
+		return AuthenticateResponse{Success: res}, err
 	}
 }
 

@@ -88,7 +88,7 @@ func TestAuthenticate(t *testing.T) {
 		data      *userpb.AuthenticateRequest
 		res       *userpb.AuthenticateResponse
 		err       error
-		srv_res   int
+		srv_res   bool
 		srv_err   error
 	}{
 		{
@@ -97,6 +97,7 @@ func TestAuthenticate(t *testing.T) {
 				Email:    "user@email.com",
 				Password: "qwerty",
 			},
+			srv_res: true,
 			srv_err: nil,
 		},
 		{
@@ -104,7 +105,6 @@ func TestAuthenticate(t *testing.T) {
 			data: &userpb.AuthenticateRequest{
 				Email: "user@email.com",
 			},
-			srv_res: -1,
 			srv_err: errors.NewBadRequestPasswordError(),
 		},
 		{
@@ -112,7 +112,6 @@ func TestAuthenticate(t *testing.T) {
 			data: &userpb.AuthenticateRequest{
 				Password: "invalid_password",
 			},
-			srv_res: -1,
 			srv_err: errors.NewBadRequestEmailError(),
 		},
 		{
@@ -121,7 +120,6 @@ func TestAuthenticate(t *testing.T) {
 				Email:    "user@email.com",
 				Password: "invalid_password",
 			},
-			srv_res: -1,
 			srv_err: errors.NewUnauthenticatedError(),
 		},
 	}
@@ -137,7 +135,7 @@ func TestAuthenticate(t *testing.T) {
 				tc.err = status.Error(e.GrpcCode(), tc.srv_err.Error())
 
 			} else {
-				tc.res = &userpb.AuthenticateResponse{UserId: int32(tc.srv_res)}
+				tc.res = &userpb.AuthenticateResponse{Success: tc.srv_res}
 			}
 
 			// act

@@ -2,11 +2,7 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"strconv"
-	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/mauricioww/user_microsrv/http_srv/entities"
@@ -15,7 +11,7 @@ import (
 
 type HttpService interface {
 	CreateUser(ctx context.Context, email string, pwd string, age int, details entities.Details) (int, error)
-	Authenticate(ctx context.Context, email string, pwd string) (string, error)
+	Authenticate(ctx context.Context, email string, pwd string) (bool, error)
 	UpdateUser(ctx context.Context, user_id int, email string, pwd string, age int, details entities.Details) (bool, error)
 	GetUser(ctx context.Context, user_id int) (entities.User, error)
 	DeleteUser(ctx context.Context, user_id int) (bool, error)
@@ -46,8 +42,6 @@ func (s *httpService) CreateUser(ctx context.Context, email string, pwd string, 
 	res, err := s.repository.CreateUser(ctx, user)
 
 	if err != nil {
-		fmt.Println("Create Error")
-		fmt.Printf("Service %+v\n", err)
 		level.Error(logger).Log("ERROR: ", err)
 	} else {
 		logger.Log("action", "success")
@@ -56,9 +50,8 @@ func (s *httpService) CreateUser(ctx context.Context, email string, pwd string, 
 	return res, err
 }
 
-func (s *httpService) Authenticate(ctx context.Context, email string, pwd string) (string, error) {
+func (s *httpService) Authenticate(ctx context.Context, email string, pwd string) (bool, error) {
 	logger := log.With(s.logger, "method", "authenticate")
-	var response string
 
 	session := entities.Session{
 		Email:    email,
@@ -69,26 +62,11 @@ func (s *httpService) Authenticate(ctx context.Context, email string, pwd string
 
 	if err != nil {
 		level.Error(logger).Log("ERROR: ", err)
-		return "", err
+	} else {
+		logger.Log("action", "success")
 	}
 
-	if res >= 0 {
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"user_id": strconv.Itoa(res),
-			"email":   session.Email,
-			"exp":     time.Now().Add(time.Minute * 15).Unix(),
-		})
-
-		response, err = token.SignedString([]byte("this_is_a_secret_shhh"))
-
-		if err != nil {
-			level.Error(logger).Log("ERROR: ", err)
-			return "", err
-		}
-	}
-
-	logger.Log("action", "success")
-	return response, nil
+	return res, err
 }
 
 func (s *httpService) UpdateUser(ctx context.Context, user_id int, email string, pwd string, age int, details entities.Details) (bool, error) {

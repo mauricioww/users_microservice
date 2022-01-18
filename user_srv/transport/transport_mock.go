@@ -17,10 +17,10 @@ func (s *GrpcUserSrvMock) CreateUser(ctx context.Context, email string, pwd stri
 	return args.Int(0), args.Error(1)
 }
 
-func (s *GrpcUserSrvMock) Authenticate(ctx context.Context, email string, pwd string) (int, error) {
+func (s *GrpcUserSrvMock) Authenticate(ctx context.Context, email string, pwd string) (bool, error) {
 	args := s.Called(ctx, email, pwd)
 
-	return args.Int(0), args.Error(1)
+	return args.Bool(0), args.Error(1)
 }
 
 func (s *GrpcUserSrvMock) UpdateUser(ctx context.Context, id int, email string, pwd string, age int) (bool, error) {

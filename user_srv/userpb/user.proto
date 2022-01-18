@@ -18,7 +18,7 @@ message AuthenticateRequest {
 }
 
 message AuthenticateResponse {
-    int32 user_id = 1;
+    bool success = 1;
 }
 
 message UpdateUserRequest {

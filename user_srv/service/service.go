@@ -13,7 +13,7 @@ import (
 
 type GrpcUserService interface {
 	CreateUser(ctx context.Context, email string, pwd string, age int) (int, error)
-	Authenticate(ctx context.Context, email string, pwd string) (int, error)
+	Authenticate(ctx context.Context, email string, pwd string) (bool, error)
 	UpdateUser(ctx context.Context, id int, email string, pwd string, age int) (bool, error)
 	GetUser(ctx context.Context, id int) (entities.User, error)
 	DeleteUser(ctx context.Context, id int) (bool, error)
@@ -63,17 +63,17 @@ func (g *grpcUserService) CreateUser(ctx context.Context, email string, pwd stri
 	return res, err
 }
 
-func (g *grpcUserService) Authenticate(ctx context.Context, email string, pwd string) (int, error) {
+func (g *grpcUserService) Authenticate(ctx context.Context, email string, pwd string) (bool, error) {
 	logger := log.With(g.logger, "method", "authenticate")
 
 	if email == "" {
 		e := errors.NewBadRequestEmailError()
 		level.Error(logger).Log("validation: ", e)
-		return -1, e
+		return false, e
 	} else if pwd == "" {
 		e := errors.NewBadRequestPasswordError()
 		level.Error(logger).Log("validation: ", e)
-		return -1, e
+		return false, e
 	}
 
 	auth := entities.Session{
@@ -85,15 +85,15 @@ func (g *grpcUserService) Authenticate(ctx context.Context, email string, pwd st
 
 	if err != nil {
 		level.Error(logger).Log("ERROR", err)
-		return -1, err
+		return false, err
 	} else if ciphered_pwd := helpers.Cipher(auth.Password); ciphered_pwd != hashed_pwd {
 		e := errors.NewUnauthenticatedError()
 		level.Error(logger).Log("ERROR", e)
-		return -1, e
+		return false, e
+	} else {
+		logger.Log("action", "success")
+		return true, nil
 	}
-
-	logger.Log("action", "success")
-	return auth.Id, nil
 }
 
 func (g *grpcUserService) UpdateUser(ctx context.Context, id int, email string, pwd string, age int) (bool, error) {

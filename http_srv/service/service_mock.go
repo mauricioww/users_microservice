@@ -20,10 +20,10 @@ func (r *RepoMock) CreateUser(ctx context.Context, user entities.User) (int, err
 	return args.Int(0), args.Error(1)
 }
 
-func (r *RepoMock) Authenticate(ctx context.Context, session entities.Session) (int, error) {
+func (r *RepoMock) Authenticate(ctx context.Context, session entities.Session) (bool, error) {
 	args := r.Called(ctx, session)
 
-	return args.Int(0), args.Error(1)
+	return args.Bool(0), args.Error(1)
 }
 
 func (r *RepoMock) UpdateUser(ctx context.Context, user entities.UserUpdate) (bool, error) {

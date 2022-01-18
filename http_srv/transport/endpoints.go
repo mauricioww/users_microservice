@@ -37,7 +37,7 @@ func makeAuthenticateEndpoint(http_srv service.HttpService) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(AuthenticateRequest)
 		res, err := http_srv.Authenticate(ctx, req.Email, req.Password)
-		return AuthenticateResponse{Token: res}, err
+		return AuthenticateResponse{Success: res}, err
 	}
 }
 
