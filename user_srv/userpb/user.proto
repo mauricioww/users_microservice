@@ -59,34 +59,34 @@ service UserService {
 
     rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
         option (google.api.http) = {
-            post: "/api/v1/users"
+            post: "/api/users"
             body:  "*"
         };
     }
 
     rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse) {
         option (google.api.http) = {
-            post: "/api/v1/auth",
+            post: "/api/auth",
             body: "*"
         };
     }
 
     rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {
         option (google.api.http) = {
-            put: "/api/v1/users/{id}"
+            put: "/api/users/{id}"
             body: "*"
         };
     }
 
     rpc GetUser(GetUserRequest) returns (GetUserResponse) {
         option (google.api.http) = {
-            get: "/api/v1/users/{id}"
+            get: "/api/users/{id}"
         };
     }
 
     rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {
         option (google.api.http) = {
-            delete: "/api/v1/users/{id}"
+            delete: "/api/users/{id}"
         };
     };
 

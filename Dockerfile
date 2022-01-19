@@ -8,7 +8,7 @@ COPY . .
 
 RUN go mod download
 
-RUN GOOS=linux go build -ldflags="-w -s" -o http ./http_srv/.
+RUN GOOS=linux go build -ldflags="-w -s" -o server ./server/.
 RUN GOOS=linux go build -ldflags="-w -s" -o user ./user_srv/.
 RUN GOOS=linux go build -ldflags="-w -s" -o details ./user_details_srv/.
 
@@ -18,9 +18,9 @@ FROM golang:alpine AS http_server
 
 WORKDIR /
 
-COPY --from=base_app ./src/http ./
+COPY --from=base_app ./src/server ./
 
-ENTRYPOINT ["/http"]
+ENTRYPOINT ["/server"]
 
 #############################################################################
 

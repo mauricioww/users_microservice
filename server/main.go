@@ -2,28 +2,30 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/caarlos0/env"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/mauricioww/user_microsrv/errors"
 	"github.com/mauricioww/user_microsrv/user_srv/userpb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 )
 
-type UserServer struct {
-	userpb.UnimplementedUserServiceServer
-}
-
-func NewServer() *UserServer {
-	return &UserServer{}
-}
-
 func main() {
+
+	cts := constants{}
+
+	if err := env.Parse(&cts); err != nil {
+		fmt.Printf("%+v\n", err)
+	}
 
 	var logger log.Logger
 	{
@@ -47,7 +49,7 @@ func main() {
 	var user_grpc *grpc.ClientConn
 	var err error
 	{
-		user_addr := "0.0.0.0:50051"
+		user_addr := fmt.Sprintf("%v:%v", cts.UserHost, cts.UserPort)
 		user_grpc, err = grpc.Dial(user_addr, grpc.WithInsecure())
 		if err != nil {
 			level.Error(logger).Log("gRPC: ", err)
@@ -55,7 +57,8 @@ func main() {
 		}
 	}
 
-	gmux := runtime.NewServeMux()
+	opt := runtime.WithErrorHandler(errorHandler)
+	gmux := runtime.NewServeMux(opt)
 	ctx := context.Background()
 	err = userpb.RegisterUserServiceHandler(ctx, gmux, user_grpc)
 
@@ -82,4 +85,18 @@ func main() {
 	}()
 
 	level.Error(logger).Log("exit: ", <-errs)
+}
+
+func errorHandler(_ context.Context, _ *runtime.ServeMux, _ runtime.Marshaler, w http.ResponseWriter, _ *http.Request, err error) {
+	e := status.Convert(err)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(errors.ResolveHttp(e.Code()))
+	json.NewEncoder(w).Encode(map[string]interface{}{"error": e.Message()})
+}
+
+type constants struct {
+	UserHost    string `env:"USER_SERVER,required"`
+	UserPort    int    `env:"USER_PORT" envDefault:"50051"`
+	DetailsHost string `env:"DETAILS_SERVER,required"`
+	DetailsPort int    `env:"DETAILS_PORT" envDefault:"50051"`
 }

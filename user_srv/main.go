@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/caarlos0/env/v6"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	_ "github.com/go-sql-driver/mysql"
@@ -19,17 +20,11 @@ import (
 )
 
 func main() {
-	cts := constants{
-		DbHost: "127.0.0.1",
-		DbPort: 3306,
-		DbName: "gateway",
-		DbUser: "mauricio",
-		DbPwd:  "password",
-	}
+	cts := constants{}
 
-	// if err := env.Parse(&cts); err != nil {
-	// 	fmt.Printf("%+v\n", err)
-	// }
+	if err := env.Parse(&cts); err != nil {
+		fmt.Printf("%+v\n", err)
+	}
 
 	var logger log.Logger
 	{
