@@ -10,7 +10,6 @@ type (
 	Session struct {
 		Email    string
 		Password string
-		Id       int
 	}
 
 	Update struct {
