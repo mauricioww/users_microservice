@@ -21,9 +21,11 @@ func BuildInsertBson(d entities.UserDetails) bson.M {
 }
 
 func NoExists(coll *mongo.Collection, ctx context.Context, id int) bool {
-	var results bson.M
-	err := coll.FindOne(ctx, bson.D{{"_id", id}}).Decode(&results)
-	return err == mongo.ErrNoDocuments
+	var results entities.UserDetails
+	if err := coll.FindOne(ctx, bson.D{{"_id", id}}).Decode(&results); err == mongo.ErrNoDocuments {
+		return true
+	}
+	return !results.Active
 }
 
 func injectFields(d entities.UserDetails) bson.M {
@@ -34,5 +36,6 @@ func injectFields(d entities.UserDetails) bson.M {
 		"married":       d.Married,
 		"height":        d.Height,
 		"weight":        d.Weight,
+		"active":        d.Active,
 	}
 }

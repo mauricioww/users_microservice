@@ -2,5 +2,6 @@ CREATE TABLE IF NOT EXISTS USERS(
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     email CHAR(60) NOT NULL,
     pwd_hash CHAR(60) NOT NULL,
-    age INT
+    age INT,
+    active BOOLEAN DEFAULT true
 );

@@ -9,5 +9,6 @@ type (
 		Married      bool    `bson:"married"`
 		Height       float32 `bson:"height"`
 		Weight       float32 `bson:"weight"`
+		Active       bool    `bson:"active"`
 	}
 )

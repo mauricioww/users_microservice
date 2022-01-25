@@ -16,7 +16,7 @@ const (
 	`
 
 	authenticate_sql = `
-		SELECT u.id, u.pwd_hash FROM USERS u WHERE u.email = ?
+		SELECT u.pwd_hash FROM USERS u WHERE u.email = ?
 	`
 
 	update_user_sql = `
@@ -26,12 +26,16 @@ const (
 
 	get_user_by_id = `
 		SELECT u.email, u.pwd_hash, u.age
-			FROM USERS u WHERE u.id = ?
+			FROM USERS u WHERE u.id = ? AND u.active = true
 	`
 
 	delete_user_sql = `
 		DELETE FROM USERS WHERE id = ?
 	`
+
+	soft_delete_user_sql = `
+		UPDATE USERS SET active = false
+			WHERE id = ?	`
 )
 
 type UserRepository interface {
@@ -66,7 +70,7 @@ func (r *userRepository) CreateUser(ctx context.Context, user entities.User) (in
 func (r *userRepository) Authenticate(ctx context.Context, session *entities.Session) (string, error) {
 	var hash string
 
-	if err := r.db.QueryRow(authenticate_sql, session.Email).Scan(&session.Id, &hash); err == sql.ErrNoRows {
+	if err := r.db.QueryRow(authenticate_sql, session.Email).Scan(&hash); err == sql.ErrNoRows {
 		return "", errors.NewUserNotFoundError()
 	} else if err != nil {
 		return "", errors.NewInternalError()
@@ -104,7 +108,7 @@ func (r *userRepository) DeleteUser(ctx context.Context, id int) (bool, error) {
 
 	if err := r.db.QueryRow(get_user_by_id, id).Scan(); err == sql.ErrNoRows {
 		return false, errors.NewUserNotFoundError()
-	} else if _, err := r.db.ExecContext(ctx, delete_user_sql, id); err != nil {
+	} else if _, err := r.db.ExecContext(ctx, soft_delete_user_sql, id); err != nil {
 		return false, errors.NewInternalError()
 	}
 

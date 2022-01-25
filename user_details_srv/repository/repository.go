@@ -31,6 +31,7 @@ func NewUserDetailsRepository(mongo_db *mongo.Database, l log.Logger) UserDetail
 
 func (r *userDetailsRepository) SetUserDetails(ctx context.Context, details entities.UserDetails) (bool, error) {
 	collection := r.db.Collection("information")
+	details.Active = true
 	var err error
 
 	if helpers.NoExists(collection, ctx, details.UserId) {
@@ -61,10 +62,19 @@ func (r *userDetailsRepository) GetUserDetails(ctx context.Context, user_id int)
 
 func (r *userDetailsRepository) DeleteUserDetails(ctx context.Context, user_id int) (bool, error) {
 	collection := r.db.Collection("information")
+	var data entities.UserDetails
 
 	if helpers.NoExists(collection, ctx, user_id) {
 		return false, errors.NewUserNotFoundError()
-	} else if _, err := collection.DeleteOne(ctx, bson.D{{"_id", user_id}}); err != nil {
+	}
+
+	if err := collection.FindOne(ctx, bson.D{{"_id", user_id}}).Decode(&data); err != nil {
+		return false, errors.NewInternalError()
+	}
+
+	data.Active = false
+
+	if _, err := collection.UpdateByID(ctx, user_id, helpers.BuildUpdateBson(data)); err != nil {
 		return false, errors.NewInternalError()
 	}
 
