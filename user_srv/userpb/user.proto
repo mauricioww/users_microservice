@@ -4,8 +4,8 @@ option go_package = "./;userpb";
 
 message CreateUserRequest {
     string email = 1;
-    string password = 2;
-    uint32 age = 3;
+    string password = 3;
+    uint32 age = 5;
 }
 
 message CreateUserResponse {
@@ -14,7 +14,7 @@ message CreateUserResponse {
 
 message AuthenticateRequest {
     string email = 1;
-    string password = 2;
+    string password = 3;
 }
 
 message AuthenticateResponse {
@@ -23,9 +23,9 @@ message AuthenticateResponse {
 
 message UpdateUserRequest {
     uint32 id = 1;
-    string email = 2;
-    string password = 3;
-    uint32 age = 4;
+    string email = 3;
+    string password = 5;
+    uint32 age = 7;
 }
 
 message UpdateUserResponse {
@@ -38,8 +38,8 @@ message GetUserRequest {
 
 message GetUserResponse {
     string email = 1;
-    string password = 2;
-    uint32 age = 3;
+    string password = 3;
+    uint32 age = 5;
 }
 
 message DeleteUserRequest {

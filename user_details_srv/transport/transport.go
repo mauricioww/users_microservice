@@ -4,35 +4,36 @@ import (
 	"context"
 	"errors"
 
-	grpc_gokit "github.com/go-kit/kit/transport/grpc"
-	grpc_err "github.com/mauricioww/user_microsrv/errors"
+	grpcGokit "github.com/go-kit/kit/transport/grpc"
+	grpcError "github.com/mauricioww/user_microsrv/errors"
 	"github.com/mauricioww/user_microsrv/user_details_srv/detailspb"
 	"google.golang.org/grpc/status"
 )
 
 type gRPCServer struct {
-	setUserDetails    grpc_gokit.Handler
-	getUserDetails    grpc_gokit.Handler
-	deleteUserDetails grpc_gokit.Handler
+	setUserDetails    grpcGokit.Handler
+	getUserDetails    grpcGokit.Handler
+	deleteUserDetails grpcGokit.Handler
 
 	detailspb.UnimplementedUserDetailsServiceServer
 }
 
-func NewGrpcUserDetailsServer(endpoints GrpcUserDetailsServiceEndpoints) detailspb.UserDetailsServiceServer {
+// NewGrpcUserDetailsServer returns the server with the endpoints and the specifications for each one
+func NewGrpcUserDetailsServer(endpoints GrpcEndpoints) detailspb.UserDetailsServiceServer {
 	return &gRPCServer{
-		setUserDetails: grpc_gokit.NewServer(
+		setUserDetails: grpcGokit.NewServer(
 			endpoints.SetUserDetails,
 			decodeSetUserDetailsRequest,
 			encodeSetUserDetailsResponse,
 		),
 
-		getUserDetails: grpc_gokit.NewServer(
+		getUserDetails: grpcGokit.NewServer(
 			endpoints.GetUserDetails,
 			decodeGetUserDetailsRequest,
 			encodeGetUserDetailsResponse,
 		),
 
-		deleteUserDetails: grpc_gokit.NewServer(
+		deleteUserDetails: grpcGokit.NewServer(
 			endpoints.DeleteUserDetails,
 			decodeDeleteUserDetails,
 			encodeDeleteUserDetails,
@@ -41,20 +42,20 @@ func NewGrpcUserDetailsServer(endpoints GrpcUserDetailsServiceEndpoints) details
 }
 
 func decodeSetUserDetailsRequest(_ context.Context, request interface{}) (interface{}, error) {
-	set_details, ok := request.(*detailspb.SetUserDetailsRequest)
+	setDetails, ok := request.(*detailspb.SetUserDetailsRequest)
 
 	if !ok {
-		return nil, errors.New("No proto message 'SetUserDetailsRequest'")
+		return nil, errors.New("no proto message 'SetUserDetailsRequest'")
 	}
 
 	req := SetUserDetailsRequest{
-		UserId:       int(set_details.GetUserId()),
-		Country:      set_details.GetCountry(),
-		City:         set_details.GetCity(),
-		MobileNumber: set_details.GetMobileNumber(),
-		Married:      set_details.GetMarried(),
-		Height:       set_details.GetHeight(),
-		Weigth:       set_details.GetWeight(),
+		UserID:       int(setDetails.GetUserId()),
+		Country:      setDetails.GetCountry(),
+		City:         setDetails.GetCity(),
+		MobileNumber: setDetails.GetMobileNumber(),
+		Married:      setDetails.GetMarried(),
+		Height:       setDetails.GetHeight(),
+		Weigth:       setDetails.GetWeight(),
 	}
 
 	return req, nil
@@ -66,14 +67,14 @@ func encodeSetUserDetailsResponse(_ context.Context, response interface{}) (inte
 }
 
 func decodeGetUserDetailsRequest(_ context.Context, request interface{}) (interface{}, error) {
-	get_details, ok := request.(*detailspb.GetUserDetailsRequest)
+	getDetails, ok := request.(*detailspb.GetUserDetailsRequest)
 
 	if !ok {
-		return nil, errors.New("No proto message 'GetUserDetailsRequest'")
+		return nil, errors.New("no proto message 'GetUserDetailsRequest'")
 	}
 
 	req := GetUserDetailsRequest{
-		UserId: int(get_details.GetUserId()),
+		UserID: int(getDetails.GetUserId()),
 	}
 
 	return req, nil
@@ -81,20 +82,19 @@ func decodeGetUserDetailsRequest(_ context.Context, request interface{}) (interf
 
 func encodeGetUserDetailsResponse(_ context.Context, response interface{}) (interface{}, error) {
 	res := response.(GetUserDetailsResponse)
-
 	return &detailspb.GetUserDetailsResponse{Country: res.Country, City: res.City, MobileNumber: res.MobileNumber,
 		Married: res.Married, Height: res.Height, Weight: res.Weight}, nil
 }
 
 func decodeDeleteUserDetails(_ context.Context, request interface{}) (interface{}, error) {
-	delete_details, ok := request.(*detailspb.DeleteUserDetailsRequest)
+	deleteDetails, ok := request.(*detailspb.DeleteUserDetailsRequest)
 
 	if !ok {
-		return nil, errors.New("No proto message 'DeleteUserDetailsRequest'")
+		return nil, errors.New("no proto message 'DeleteUserDetailsRequest'")
 	}
 
 	req := DeleteUserDetailsRequest{
-		UserId: int(delete_details.GetUserId()),
+		UserID: int(deleteDetails.GetUserId()),
 	}
 
 	return req, nil
@@ -109,7 +109,11 @@ func (g *gRPCServer) SetUserDetails(ctx context.Context, req *detailspb.SetUserD
 	_, res, err := g.setUserDetails.ServeGRPC(ctx, req)
 
 	if err != nil {
-		e, _ := err.(grpc_err.ErrorResolver)
+		e, ok := err.(grpcError.ErrorResolver)
+		if !ok {
+			u := grpcError.NewUnknownError()
+			return nil, status.Error(u.GrpcCode(), u.Error())
+		}
 		return nil, status.Error(e.GrpcCode(), err.Error())
 	}
 
@@ -120,7 +124,11 @@ func (g *gRPCServer) GetUserDetails(ctx context.Context, req *detailspb.GetUserD
 	_, res, err := g.getUserDetails.ServeGRPC(ctx, req)
 
 	if err != nil {
-		e, _ := err.(grpc_err.ErrorResolver)
+		e, ok := err.(grpcError.ErrorResolver)
+		if !ok {
+			u := grpcError.NewUnknownError()
+			return nil, status.Error(u.GrpcCode(), u.Error())
+		}
 		return nil, status.Error(e.GrpcCode(), err.Error())
 	}
 
@@ -131,7 +139,11 @@ func (g *gRPCServer) DeleteUserDetails(ctx context.Context, req *detailspb.Delet
 	_, res, err := g.deleteUserDetails.ServeGRPC(ctx, req)
 
 	if err != nil {
-		e, _ := err.(grpc_err.ErrorResolver)
+		e, ok := err.(grpcError.ErrorResolver)
+		if !ok {
+			u := grpcError.NewUnknownError()
+			return nil, status.Error(u.GrpcCode(), u.Error())
+		}
 		return nil, status.Error(e.GrpcCode(), err.Error())
 	}
 

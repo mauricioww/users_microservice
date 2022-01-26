@@ -4,41 +4,38 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/mauricioww/user_microsrv/errors"
 	"github.com/mauricioww/user_microsrv/user_srv/entities"
 )
 
 const (
-	create_user_sql = `
+	createUserSQL = `
 		INSERT INTO USERS(email, pwd_hash, age)
 			VALUES (?, ?, ?)
 	`
 
-	authenticate_sql = `
+	authenticateSQL = `
 		SELECT u.pwd_hash FROM USERS u WHERE u.email = ?
 	`
 
-	update_user_sql = `
+	updateUserSQL = `
 		UPDATE USERS SET email = ?, pwd_hash = ?, age = ?
 			WHERE id = ? 
 	`
 
-	get_user_by_id = `
+	getUserByIDSQL = `
 		SELECT u.email, u.pwd_hash, u.age
 			FROM USERS u WHERE u.id = ? AND u.active = true
 	`
 
-	delete_user_sql = `
-		DELETE FROM USERS WHERE id = ?
-	`
-
-	soft_delete_user_sql = `
+	softDeleteUserSQL = `
 		UPDATE USERS SET active = false
 			WHERE id = ?	`
 )
 
-type UserRepository interface {
+// UserRepositorier describes the methods used to do DB operations
+type UserRepositorier interface {
 	CreateUser(ctx context.Context, user entities.User) (int, error)
 	Authenticate(ctx context.Context, session *entities.Session) (string, error)
 	UpdateUser(ctx context.Context, information entities.Update) (entities.User, error)
@@ -46,69 +43,90 @@ type UserRepository interface {
 	DeleteUser(ctx context.Context, id int) (bool, error)
 }
 
-type userRepository struct {
+// UserRepository implements the UserRepositorier interface
+type UserRepository struct {
 	db     *sql.DB
 	logger log.Logger
 }
 
-func NewUserRepository(mysql_db *sql.DB, l log.Logger) UserRepository {
-	return &userRepository{
-		db:     mysql_db,
+// NewUserRepository returns a usreRepository pointer type
+func NewUserRepository(mysqlDb *sql.DB, l log.Logger) *UserRepository {
+	return &UserRepository{
+		db:     mysqlDb,
 		logger: log.With(l, "repository", "mysql"),
 	}
 }
 
-func (r *userRepository) CreateUser(ctx context.Context, user entities.User) (int, error) {
-	if id, err := r.db.ExecContext(ctx, create_user_sql, user.Email, user.Password, user.Age); err != nil {
+// CreateUser does the DB operation to create a new user with the given data
+func (r *UserRepository) CreateUser(ctx context.Context, user entities.User) (int, error) {
+	id, err := r.db.ExecContext(ctx, createUserSQL, user.Email, user.Password, user.Age)
+
+	if err != nil {
 		return -1, errors.NewInternalError()
-	} else {
-		n, _ := id.LastInsertId()
-		return int(n), nil
 	}
+
+	n, _ := id.LastInsertId()
+	return int(n), nil
 }
 
-func (r *userRepository) Authenticate(ctx context.Context, session *entities.Session) (string, error) {
+// Authenticate fetchs the password for the specific user and return it
+func (r *UserRepository) Authenticate(ctx context.Context, session *entities.Session) (string, error) {
 	var hash string
 
-	if err := r.db.QueryRow(authenticate_sql, session.Email).Scan(&hash); err == sql.ErrNoRows {
+	err := r.db.QueryRow(authenticateSQL, session.Email).Scan(&hash)
+
+	if err == sql.ErrNoRows {
 		return "", errors.NewUserNotFoundError()
-	} else if err != nil {
+	}
+
+	if err != nil {
 		return "", errors.NewInternalError()
 	}
 
 	return hash, nil
 }
 
-func (r *userRepository) UpdateUser(ctx context.Context, update entities.Update) (entities.User, error) {
+// UpdateUser replaces the current information within DB with the given data
+func (r *UserRepository) UpdateUser(ctx context.Context, update entities.Update) (entities.User, error) {
 	var u entities.User
 
-	if err := r.db.QueryRow(get_user_by_id, update.UserId).Scan(); err == sql.ErrNoRows {
+	if err := r.db.QueryRow(getUserByIDSQL, update.UserID).Scan(); err == sql.ErrNoRows {
 		return u, errors.NewUserNotFoundError()
-	} else if _, err := r.db.ExecContext(ctx, update_user_sql, update.Email, update.Password, update.Age, update.UserId); err != nil {
+	}
+
+	if _, err := r.db.ExecContext(ctx, updateUserSQL, update.Email, update.Password, update.Age, update.UserID); err != nil {
 		return u, errors.NewInternalError()
 	}
 
-	_ = r.db.QueryRow(get_user_by_id, update.UserId).Scan(&u.Email, &u.Password, &u.Age)
+	_ = r.db.QueryRow(getUserByIDSQL, update.UserID).Scan(&u.Email, &u.Password, &u.Age)
 	return u, nil
 }
 
-func (r *userRepository) GetUser(ctx context.Context, id int) (entities.User, error) {
+// GetUser fetchs the information within the DB about a specific user
+func (r *UserRepository) GetUser(ctx context.Context, id int) (entities.User, error) {
 	var u entities.User
 
-	if err := r.db.QueryRow(get_user_by_id, id).Scan(&u.Email, &u.Password, &u.Age); err == sql.ErrNoRows {
+	err := r.db.QueryRow(getUserByIDSQL, id).Scan(&u.Email, &u.Password, &u.Age)
+
+	if err == sql.ErrNoRows {
 		return entities.User{}, errors.NewUserNotFoundError()
-	} else if err != nil {
+	}
+
+	if err != nil {
 		return entities.User{}, errors.NewInternalError()
 	}
 
 	return u, nil
 }
 
-func (r *userRepository) DeleteUser(ctx context.Context, id int) (bool, error) {
+// DeleteUser does a soft delete operation over a specific user
+func (r *UserRepository) DeleteUser(ctx context.Context, id int) (bool, error) {
 
-	if err := r.db.QueryRow(get_user_by_id, id).Scan(); err == sql.ErrNoRows {
+	if err := r.db.QueryRow(getUserByIDSQL, id).Scan(); err == sql.ErrNoRows {
 		return false, errors.NewUserNotFoundError()
-	} else if _, err := r.db.ExecContext(ctx, soft_delete_user_sql, id); err != nil {
+	}
+
+	if _, err := r.db.ExecContext(ctx, softDeleteUserSQL, id); err != nil {
 		return false, errors.NewInternalError()
 	}
 

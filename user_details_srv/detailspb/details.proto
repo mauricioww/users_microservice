@@ -4,12 +4,12 @@ option go_package = "./;detailspb";
 
 message SetUserDetailsRequest {
     uint32 user_id = 1;
-    string country = 2;
-    string city = 3;
-    string mobile_number = 4;
-    bool married = 5;
-    float height = 6;
-    float weight = 7;
+    string country = 3;
+    string city = 5;
+    string mobile_number = 7;
+    bool married = 9;
+    float height = 11;
+    float weight = 13;
 }
 
 message SetUserDetailsResponse {
@@ -22,11 +22,11 @@ message GetUserDetailsRequest {
 
 message GetUserDetailsResponse {
     string country = 1;
-    string city = 2;
-    string mobile_number = 3;
-    bool married = 4;
-    float height = 5;
-    float weight = 6;
+    string city = 3;
+    string mobile_number = 5;
+    bool married = 7;
+    float height = 9;
+    float weight = 11;
 }
 
 message DeleteUserDetailsRequest {
