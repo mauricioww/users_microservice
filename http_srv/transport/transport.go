@@ -6,50 +6,51 @@ import (
 	"net/http"
 	"strconv"
 
-	gokit_http "github.com/go-kit/kit/transport/http"
+	gokitHttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 	"github.com/mauricioww/user_microsrv/errors"
 	"google.golang.org/grpc/status"
 )
 
-func NewHTTPServer(ctx context.Context, http_endpoints HttpEndpoints) http.Handler {
+// NewHTTPServer returns the server with the endpoints and the specifications for each one
+func NewHTTPServer(ctx context.Context, endpoints HTTPEndpoints) http.Handler {
 	root := mux.NewRouter()
 	root.Use(middleware)
 
-	user_router := root.PathPrefix("/users").Subrouter()
+	userRouter := root.PathPrefix("/users").Subrouter()
 
-	opt := gokit_http.ServerOption(gokit_http.ServerErrorEncoder(encodeError))
+	opt := gokitHttp.ServerOption(gokitHttp.ServerErrorEncoder(encodeError))
 
-	user_router.Methods("GET").Path("/{id}").Handler(gokit_http.NewServer(
-		http_endpoints.GetUser,
+	userRouter.Methods("GET").Path("/{id}").Handler(gokitHttp.NewServer(
+		endpoints.GetUser,
 		decodeGetUserRequest,
 		encodeResponse,
 		opt,
 	))
 
-	user_router.Methods("POST").Handler(gokit_http.NewServer(
-		http_endpoints.CreateUser,
+	userRouter.Methods("POST").Handler(gokitHttp.NewServer(
+		endpoints.CreateUser,
 		decodeCreateUserRequest,
 		encodeResponse,
 		opt,
 	))
 
-	user_router.Methods("PUT").Path("/{id}").Handler(gokit_http.NewServer(
-		http_endpoints.UpdateUser,
+	userRouter.Methods("PUT").Path("/{id}").Handler(gokitHttp.NewServer(
+		endpoints.UpdateUser,
 		decodeUpdateUserRequest,
 		encodeResponse,
 		opt,
 	))
 
-	user_router.Methods("DELETE").Path("/{id}").Handler(gokit_http.NewServer(
-		http_endpoints.DeleteUser,
+	userRouter.Methods("DELETE").Path("/{id}").Handler(gokitHttp.NewServer(
+		endpoints.DeleteUser,
 		decodeDeleteUserRequest,
 		encodeResponse,
 		opt,
 	))
 
-	root.Methods("POST").Path("/auth").Handler(gokit_http.NewServer(
-		http_endpoints.Authenticate,
+	root.Methods("POST").Path("/auth").Handler(gokitHttp.NewServer(
+		endpoints.Authenticate,
 		decodeAuthenticateRequest,
 		encodeResponse,
 		opt,
@@ -85,42 +86,42 @@ func decodeAuthenticateRequest(ctx context.Context, r *http.Request) (interface{
 
 func decodeUpdateUserRequest(ctx context.Context, r *http.Request) (interface{}, error) {
 	var request UpdateUserRequest
-	id_param := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(id_param)
+	idParam := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(idParam)
 
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	err = json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		return nil, err
 	}
 
-	request.UserId = id
+	request.UserID = id
 	return request, nil
 }
 
 func decodeGetUserRequest(ctx context.Context, r *http.Request) (interface{}, error) {
-	id_param := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(id_param)
+	idParam := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(idParam)
 
 	if err != nil {
 		return nil, err
 	}
 
-	request := GetUserRequest{UserId: id}
+	request := GetUserRequest{UserID: id}
 	return request, nil
 }
 
 func decodeDeleteUserRequest(ctx context.Context, r *http.Request) (interface{}, error) {
-	id_param := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(id_param)
+	idParam := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(idParam)
 
 	if err != nil {
 		return nil, err
 	}
 
-	request := DeleteUserRequest{UserId: id}
+	request := DeleteUserRequest{UserID: id}
 	return request, nil
 }
 
@@ -129,8 +130,11 @@ func encodeResponse(ctx context.Context, rw http.ResponseWriter, response interf
 }
 
 func encodeError(_ context.Context, err error, w http.ResponseWriter) {
-	e, _ := status.FromError(err)
+	e, ok := status.FromError(err)
+	if !ok {
+		panic("Unsupported error")
+	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(errors.ResolveHttp(e.Code()))
+	w.WriteHeader(errors.ResolveHTTP(e.Code()))
 	json.NewEncoder(w).Encode(map[string]string{"error": e.Message()})
 }

@@ -48,13 +48,13 @@ func main() {
 	var db *mongo.Database
 
 	{
-		mongo_uri := fmt.Sprintf("mongodb://%v:%v", cts.DbHost, cts.DbPort)
+		mongoURI := fmt.Sprintf("mongodb://%v:%v", cts.DbHost, cts.DbPort)
 		credentials := options.Credential{
 			Username: cts.DbUser,
 			Password: cts.DbPwd,
 		}
-		client_opts := options.Client().ApplyURI(mongo_uri).SetAuth(credentials)
-		client, err := mongo.Connect(context.Background(), client_opts)
+		clientOpts := options.Client().ApplyURI(mongoURI).SetAuth(credentials)
+		client, err := mongo.Connect(context.Background(), clientOpts)
 
 		if err != nil {
 			level.Error(logger).Log("exit", err)
@@ -64,10 +64,10 @@ func main() {
 		db = client.Database(cts.DbName)
 	}
 
-	var grpc_user_details_srv service.GrpcUserDetailsService
+	var srv service.GrpcUserDetailsServicer
 	{
-		mongo_repository := repository.NewUserDetailsRepository(db, logger)
-		grpc_user_details_srv = service.NewGrpcUserDetailsService(mongo_repository, logger)
+		mongoRepository := repository.NewUserDetailsRepository(db, logger)
+		srv = service.NewGrpcUserDetailsService(mongoRepository, logger)
 	}
 
 	errs := make(chan error)
@@ -78,9 +78,9 @@ func main() {
 		errs <- fmt.Errorf("%s", <-c)
 	}()
 
-	grpc_endpoints := transport.MakeGrpcUserDetailsServiceEndpoints(grpc_user_details_srv)
-	grpc_server := transport.NewGrpcUserDetailsServer(grpc_endpoints)
-	grpc_listener, err := net.Listen("tcp", ":50051")
+	endpoints := transport.MakeGrpcEndpoints(srv)
+	grpcServer := transport.NewGrpcUserDetailsServer(endpoints)
+	listener, err := net.Listen("tcp", ":50051")
 
 	if err != nil {
 		logger.Log("Error listening: ", err)
@@ -89,8 +89,8 @@ func main() {
 
 	go func() {
 		server := grpc.NewServer()
-		detailspb.RegisterUserDetailsServiceServer(server, grpc_server)
-		if err := server.Serve(grpc_listener); err != nil {
+		detailspb.RegisterUserDetailsServiceServer(server, grpcServer)
+		if err := server.Serve(listener); err != nil {
 			logger.Log("Error serving", err)
 		}
 		level.Info(logger).Log("info", "grpc server started")

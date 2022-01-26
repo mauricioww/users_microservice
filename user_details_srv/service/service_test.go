@@ -2,8 +2,10 @@ package service_test
 
 import (
 	"context"
+	"os"
 	"testing"
 
+	"github.com/go-kit/log"
 	"github.com/mauricioww/user_microsrv/errors"
 	"github.com/mauricioww/user_microsrv/user_details_srv/entities"
 	"github.com/mauricioww/user_microsrv/user_details_srv/service"
@@ -11,21 +13,21 @@ import (
 )
 
 func TestSetUserDetails(t *testing.T) {
-	var grpc_user_details_srv service.GrpcUserDetailsService
+	var srv service.GrpcUserDetailsServicer
+	logger := log.NewLogfmtLogger(os.Stderr)
+	repoMock := new(service.UserDetailsRepositoryMock)
+	srv = service.NewGrpcUserDetailsService(repoMock, logger)
 
-	user_details_repo_mock := new(service.UserDetailsRepositoryMock)
-	grpc_user_details_srv = service.NewGrpcUserDetailsService(user_details_repo_mock, service.InitLogger())
-
-	test_cases := []struct {
-		test_name string
-		data      entities.UserDetails
-		res       bool
-		err       error
+	testCases := []struct {
+		testName string
+		data     entities.UserDetails
+		res      bool
+		err      error
 	}{
 		{
-			test_name: "set user details which no exists success",
+			testName: "set user details which no exists success",
 			data: entities.UserDetails{
-				UserId:       1,
+				UserID:       1,
 				Country:      "Mexico",
 				City:         "CDMX",
 				MobileNumber: "11223344",
@@ -38,15 +40,15 @@ func TestSetUserDetails(t *testing.T) {
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			ctx := context.Background()
 			assert := assert.New(t)
 
 			// act
-			user_details_repo_mock.On("SetUserDetails", ctx, tc.data).Return(tc.res, tc.err)
-			res, err := grpc_user_details_srv.SetUserDetails(ctx, tc.data.UserId, tc.data.Country, tc.data.City,
+			repoMock.On("SetUserDetails", ctx, tc.data).Return(tc.res, tc.err)
+			res, err := srv.SetUserDetails(ctx, tc.data.UserID, tc.data.Country, tc.data.City,
 				tc.data.MobileNumber, tc.data.Married, tc.data.Height, tc.data.Weight)
 
 			// assert
@@ -57,22 +59,22 @@ func TestSetUserDetails(t *testing.T) {
 }
 
 func TestGetUserDetails(t *testing.T) {
-	var grpc_user_details_srv service.GrpcUserDetailsService
+	var srv service.GrpcUserDetailsServicer
+	logger := log.NewLogfmtLogger(os.Stderr)
+	repoMock := new(service.UserDetailsRepositoryMock)
+	srv = service.NewGrpcUserDetailsService(repoMock, logger)
 
-	user_details_repo_mock := new(service.UserDetailsRepositoryMock)
-	grpc_user_details_srv = service.NewGrpcUserDetailsService(user_details_repo_mock, service.InitLogger())
-
-	test_cases := []struct {
-		test_name string
-		data      int
-		res       entities.UserDetails
-		err       error
+	testCases := []struct {
+		testName string
+		data     int
+		res      entities.UserDetails
+		err      error
 	}{
 		{
-			test_name: "get user details success",
-			data:      0,
+			testName: "get user details success",
+			data:     0,
 			res: entities.UserDetails{
-				UserId:       0,
+				UserID:       0,
 				Country:      "Mexico",
 				City:         "CDMX",
 				MobileNumber: "11223344",
@@ -83,21 +85,21 @@ func TestGetUserDetails(t *testing.T) {
 			err: nil,
 		},
 		{
-			test_name: "get user details which does not exist error",
-			data:      1,
-			err:       errors.NewUserNotFoundError(),
+			testName: "get user details which does not exist error",
+			data:     1,
+			err:      errors.NewUserNotFoundError(),
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			ctx := context.Background()
 			assert := assert.New(t)
 
 			// act
-			user_details_repo_mock.On("GetUserDetails", ctx, tc.data).Return(tc.res, tc.err)
-			res, err := grpc_user_details_srv.GetUserDetails(ctx, tc.data)
+			repoMock.On("GetUserDetails", ctx, tc.data).Return(tc.res, tc.err)
+			res, err := srv.GetUserDetails(ctx, tc.data)
 
 			// assert
 			assert.Equal(tc.res, res)
@@ -107,39 +109,39 @@ func TestGetUserDetails(t *testing.T) {
 }
 
 func TestDeleteUserDetails(t *testing.T) {
-	var grpc_user_details_srv service.GrpcUserDetailsService
+	var srv service.GrpcUserDetailsServicer
+	logger := log.NewLogfmtLogger(os.Stderr)
+	repoMock := new(service.UserDetailsRepositoryMock)
+	srv = service.NewGrpcUserDetailsService(repoMock, logger)
 
-	user_details_repo_mock := new(service.UserDetailsRepositoryMock)
-	grpc_user_details_srv = service.NewGrpcUserDetailsService(user_details_repo_mock, service.InitLogger())
-
-	test_cases := []struct {
-		test_name string
-		data      int
-		res       bool
-		err       error
+	testCases := []struct {
+		testName string
+		data     int
+		res      bool
+		err      error
 	}{
 		{
-			test_name: "delete user details success",
-			data:      0,
-			res:       true,
-			err:       nil,
+			testName: "delete user details success",
+			data:     0,
+			res:      true,
+			err:      nil,
 		},
 		{
-			test_name: "delete user details which does not exist error",
-			data:      1,
-			err:       errors.NewUserNotFoundError(),
+			testName: "delete user details which does not exist error",
+			data:     1,
+			err:      errors.NewUserNotFoundError(),
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			ctx := context.Background()
 			assert := assert.New(t)
 
 			// act
-			user_details_repo_mock.On("DeleteUserDetails", ctx, tc.data).Return(tc.res, tc.err)
-			res, err := grpc_user_details_srv.DeleteUserDetails(ctx, tc.data)
+			repoMock.On("DeleteUserDetails", ctx, tc.data).Return(tc.res, tc.err)
+			res, err := srv.DeleteUserDetails(ctx, tc.data)
 
 			// assert
 			assert.Equal(tc.res, res)

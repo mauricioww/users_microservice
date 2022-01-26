@@ -7,24 +7,28 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+// GrpcUserDetailsSrvMock type is used to mock the performance of the service layer
 type GrpcUserDetailsSrvMock struct {
 	mock.Mock
 }
 
-func (g *GrpcUserDetailsSrvMock) SetUserDetails(ctx context.Context, user_id int, country string, city string, mobile_number string, married bool, height float32, weigth float32) (bool, error) {
-	args := g.Called(ctx, user_id, country, city, mobile_number, married, height, weigth)
+// SetUserDetails is a mock of the real method
+func (g *GrpcUserDetailsSrvMock) SetUserDetails(ctx context.Context, userID int, country string, city string, number string, married bool, height float32, weigth float32) (bool, error) {
+	args := g.Called(ctx, userID, country, city, number, married, height, weigth)
 
 	return args.Bool(0), args.Error(1)
 }
 
-func (g *GrpcUserDetailsSrvMock) GetUserDetails(ctx context.Context, user_id int) (entities.UserDetails, error) {
-	args := g.Called(ctx, user_id)
+// GetUserDetails is a mock of the real method
+func (g *GrpcUserDetailsSrvMock) GetUserDetails(ctx context.Context, userID int) (entities.UserDetails, error) {
+	args := g.Called(ctx, userID)
 
 	return args.Get(0).(entities.UserDetails), args.Error(1)
 }
 
-func (g *GrpcUserDetailsSrvMock) DeleteUserDetails(ctx context.Context, user_id int) (bool, error) {
-	args := g.Called(ctx, user_id)
+// DeleteUserDetails is a mock of the real method
+func (g *GrpcUserDetailsSrvMock) DeleteUserDetails(ctx context.Context, userID int) (bool, error) {
+	args := g.Called(ctx, userID)
 
 	return args.Bool(0), args.Error(1)
 }

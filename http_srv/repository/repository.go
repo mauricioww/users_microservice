@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/mauricioww/user_microsrv/http_srv/entities"
 	"github.com/mauricioww/user_microsrv/user_details_srv/detailspb"
@@ -11,7 +11,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-type HttpRepository interface {
+// HTTPRepositorier describes the necessary methods to send requests to both gRPC servers
+type HTTPRepositorier interface {
 	CreateUser(ctx context.Context, user entities.User) (int, error)
 	Authenticate(ctx context.Context, session entities.Session) (bool, error)
 	UpdateUser(ctx context.Context, user entities.UserUpdate) (bool, error)
@@ -19,38 +20,40 @@ type HttpRepository interface {
 	DeleteUser(ctx context.Context, id int) (bool, error)
 }
 
-type httpRepository struct {
-	user_client    userpb.UserServiceClient
-	details_client detailspb.UserDetailsServiceClient
-	logger         log.Logger
+// HTTPRepository type implement the HTTPRepositorier interface
+type HTTPRepository struct {
+	userClient    userpb.UserServiceClient
+	detailsClient detailspb.UserDetailsServiceClient
+	logger        log.Logger
 }
 
-func NewHttpRepository(conn1 *grpc.ClientConn, conn2 *grpc.ClientConn, logger log.Logger) HttpRepository {
-	return &httpRepository{
-		user_client:    userpb.NewUserServiceClient(conn1),
-		details_client: detailspb.NewUserDetailsServiceClient(conn2),
-		logger:         log.With(logger, "http_service", "repository"),
+// NewHTTPRepository returns an HTTPRepository tye pointer
+func NewHTTPRepository(conn1 *grpc.ClientConn, conn2 *grpc.ClientConn, logger log.Logger) *HTTPRepository {
+	return &HTTPRepository{
+		userClient:    userpb.NewUserServiceClient(conn1),
+		detailsClient: detailspb.NewUserDetailsServiceClient(conn2),
+		logger:        log.With(logger, "http_service", "repository"),
 	}
 }
 
-func (r *httpRepository) CreateUser(ctx context.Context, user entities.User) (int, error) {
+// CreateUser sends the original data to both gRPC servers
+func (r *HTTPRepository) CreateUser(ctx context.Context, user entities.User) (int, error) {
 	logger := log.With(r.logger, "method", "create_users")
-	res := -1
 
-	userpb_req := userpb.CreateUserRequest{
+	userReq := userpb.CreateUserRequest{
 		Email:    user.Email,
 		Password: user.Password,
 		Age:      uint32(user.Age),
 	}
 
-	user_res, err := r.user_client.CreateUser(ctx, &userpb_req)
+	userRes, err := r.userClient.CreateUser(ctx, &userReq)
 	if err != nil {
 		level.Error(logger).Log("err_user", err)
-		return res, err
+		return -1, err
 	}
 
-	details_req := detailspb.SetUserDetailsRequest{
-		UserId:       uint32(user_res.GetId()),
+	detailsReq := detailspb.SetUserDetailsRequest{
+		UserId:       uint32(userRes.GetId()),
 		Country:      user.Details.Country,
 		City:         user.Details.City,
 		MobileNumber: user.Details.MobileNumber,
@@ -59,47 +62,48 @@ func (r *httpRepository) CreateUser(ctx context.Context, user entities.User) (in
 		Weight:       user.Details.Weight,
 	}
 
-	details_res, err := r.details_client.SetUserDetails(ctx, &details_req)
+	detailsRes, err := r.detailsClient.SetUserDetails(ctx, &detailsReq)
 	if err != nil {
 		level.Error(logger).Log("err_details", err)
-		return res, err
+		return -1, err
 	}
 
-	if details_res.GetSuccess() {
-		res = int(user_res.GetId())
+	if detailsRes.GetSuccess() {
+		return int(userRes.GetId()), nil
 	}
 
-	return res, nil
+	return -1, nil
 }
 
-func (r *httpRepository) Authenticate(ctx context.Context, session entities.Session) (bool, error) {
+// Authenticate sends the credentials to gRPC server in order to do a login
+func (r *HTTPRepository) Authenticate(ctx context.Context, session entities.Session) (bool, error) {
 	logger := log.With(r.logger, "method", "authenticate_user")
 
-	auth_req := userpb.AuthenticateRequest{
+	userReq := userpb.AuthenticateRequest{
 		Email:    session.Email,
 		Password: session.Password,
 	}
-	auth_res, err := r.user_client.Authenticate(ctx, &auth_req)
+	userRes, err := r.userClient.Authenticate(ctx, &userReq)
 
 	if err != nil {
 		level.Error(logger).Log("err_user", err)
 	}
 
-	return auth_res.GetSuccess(), err
+	return userRes.GetSuccess(), err
 }
 
-func (r *httpRepository) UpdateUser(ctx context.Context, user entities.UserUpdate) (bool, error) {
+// UpdateUser sends the original request to both gRPC servers
+func (r *HTTPRepository) UpdateUser(ctx context.Context, user entities.UserUpdate) (bool, error) {
 	logger := log.With(r.logger, "method", "update_user")
-	var res bool
 
-	user_req := userpb.UpdateUserRequest{
-		Id:       uint32(user.UserId),
+	userReq := userpb.UpdateUserRequest{
+		Id:       uint32(user.UserID),
 		Email:    user.Email,
 		Password: user.Password,
 		Age:      uint32(user.Age),
 	}
-	details_req := detailspb.SetUserDetailsRequest{
-		UserId:       uint32(user.UserId),
+	detailsReq := detailspb.SetUserDetailsRequest{
+		UserId:       uint32(user.UserID),
 		Country:      user.Details.Country,
 		City:         user.Details.City,
 		MobileNumber: user.Details.MobileNumber,
@@ -108,89 +112,83 @@ func (r *httpRepository) UpdateUser(ctx context.Context, user entities.UserUpdat
 		Weight:       user.Details.Weight,
 	}
 
-	user_res, err := r.user_client.UpdateUser(ctx, &user_req)
+	userRes, err := r.userClient.UpdateUser(ctx, &userReq)
 	if err != nil {
 		level.Error(logger).Log("err_user", err)
-		return res, err
+		return false, err
 	}
 
-	details_res, err := r.details_client.SetUserDetails(ctx, &details_req)
+	detailsRes, err := r.detailsClient.SetUserDetails(ctx, &detailsReq)
 	if err != nil {
 		level.Error(logger).Log("err_details", err)
-		return res, err
+		return false, err
 	}
 
-	res = details_res.GetSuccess() && user_res.GetSuccess()
-
-	return res, nil
+	return detailsRes.GetSuccess() && userRes.GetSuccess(), nil
 }
 
-func (r *httpRepository) GetUser(ctx context.Context, id int) (entities.User, error) {
+// GetUser fetchs the information of a user from both gRPC servers
+func (r *HTTPRepository) GetUser(ctx context.Context, id int) (entities.User, error) {
 	logger := log.With(r.logger, "method", "get_user")
-	var res entities.User
 
-	user_req := userpb.GetUserRequest{
+	userReq := userpb.GetUserRequest{
 		Id: uint32(id),
 	}
-	details_req := detailspb.GetUserDetailsRequest{
+	detailsReq := detailspb.GetUserDetailsRequest{
 		UserId: uint32(id),
 	}
 
-	user_res, err := r.user_client.GetUser(ctx, &user_req)
-
+	userRes, err := r.userClient.GetUser(ctx, &userReq)
 	if err != nil {
 		level.Error(logger).Log("err_user", err)
-		return res, err
+		return entities.User{}, err
 	}
 
-	details_res, err := r.details_client.GetUserDetails(ctx, &details_req)
+	detailsRes, err := r.detailsClient.GetUserDetails(ctx, &detailsReq)
 	if err != nil {
 		level.Error(logger).Log("err_details", err)
-		return res, err
+		return entities.User{}, err
 	}
 
-	res = entities.User{
-		Email:    user_res.GetEmail(),
-		Password: user_res.GetPassword(),
-		Age:      int(user_res.GetAge()),
+	res := entities.User{
+		Email:    userRes.GetEmail(),
+		Password: userRes.GetPassword(),
+		Age:      int(userRes.GetAge()),
 		Details: entities.Details{
-			Country:      details_res.GetCountry(),
-			City:         details_res.GetCity(),
-			MobileNumber: details_res.GetMobileNumber(),
-			Married:      details_res.GetMarried(),
-			Height:       details_res.GetHeight(),
-			Weight:       details_res.GetWeight(),
+			Country:      detailsRes.GetCountry(),
+			City:         detailsRes.GetCity(),
+			MobileNumber: detailsRes.GetMobileNumber(),
+			Married:      detailsRes.GetMarried(),
+			Height:       detailsRes.GetHeight(),
+			Weight:       detailsRes.GetWeight(),
 		},
 	}
 
 	return res, nil
 }
 
-func (r *httpRepository) DeleteUser(ctx context.Context, id int) (bool, error) {
+// DeleteUser does a soft delete in both databases inside each gRPC server
+func (r *HTTPRepository) DeleteUser(ctx context.Context, id int) (bool, error) {
 	logger := log.With(r.logger, "method", "delete_user")
-	var res bool
 
-	user_req := userpb.DeleteUserRequest{
+	userReq := userpb.DeleteUserRequest{
 		Id: uint32(id),
 	}
-	user_res, err := r.user_client.DeleteUser(ctx, &user_req)
-
-	if err != nil {
-		level.Error(logger).Log("err_user", err)
-		return res, err
-	}
-
-	details_req := detailspb.DeleteUserDetailsRequest{
+	detailsReq := detailspb.DeleteUserDetailsRequest{
 		UserId: uint32(id),
 	}
-	details_res, err := r.details_client.DeleteUserDetails(ctx, &details_req)
 
+	userRes, err := r.userClient.DeleteUser(ctx, &userReq)
 	if err != nil {
-		level.Error(logger).Log("err_details", err)
-		return res, err
+		level.Error(logger).Log("err_user", err)
+		return false, err
 	}
 
-	res = details_res.GetSuccess() && user_res.GetSuccess()
+	detailsRes, err := r.detailsClient.DeleteUserDetails(ctx, &detailsReq)
+	if err != nil {
+		level.Error(logger).Log("err_details", err)
+		return false, err
+	}
 
-	return res, nil
+	return detailsRes.GetSuccess() && userRes.GetSuccess(), nil
 }
