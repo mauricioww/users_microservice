@@ -2,8 +2,10 @@ package service_test
 
 import (
 	"context"
+	"os"
 	"testing"
 
+	"github.com/go-kit/log"
 	"github.com/mauricioww/user_microsrv/http_srv/entities"
 	"github.com/mauricioww/user_microsrv/http_srv/service"
 	"github.com/stretchr/testify/assert"
@@ -12,17 +14,19 @@ import (
 )
 
 func TestCreateUser(t *testing.T) {
+	var http_service service.HTTPServicer
 	repository_mock := new(service.RepoMock)
-	http_service := service.NewHttpService(repository_mock, service.InitLogger())
+	logger := log.NewLogfmtLogger(os.Stderr)
+	http_service = service.NewHTTPService(repository_mock, logger)
 
-	test_cases := []struct {
-		test_name string
-		data      entities.User
-		res       int
-		err       error
+	testCases := []struct {
+		testName string
+		data     entities.User
+		res      int
+		err      error
 	}{
 		{
-			test_name: "user created successfully",
+			testName: "user created successfully",
 			data: entities.User{
 				Email:    "success@email.com",
 				Password: "qwerty",
@@ -33,7 +37,7 @@ func TestCreateUser(t *testing.T) {
 			err: nil,
 		},
 		{
-			test_name: "no email error",
+			testName: "no email error",
 			data: entities.User{
 				Password: "qwerty",
 				Age:      23,
@@ -42,7 +46,7 @@ func TestCreateUser(t *testing.T) {
 			err: status.Error(codes.FailedPrecondition, "Missing field 'password'"),
 		},
 		{
-			test_name: "no password error",
+			testName: "no password error",
 			data: entities.User{
 				Email: "success@email.com",
 				Age:   23,
@@ -52,8 +56,8 @@ func TestCreateUser(t *testing.T) {
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			ctx := context.Background()
 			assert := assert.New(t)
@@ -70,62 +74,60 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestAuthenticate(t *testing.T) {
+	var http_service service.HTTPServicer
 	repository_mock := new(service.RepoMock)
-	http_service := service.NewHttpService(repository_mock, service.InitLogger())
+	logger := log.NewLogfmtLogger(os.Stderr)
+	http_service = service.NewHTTPService(repository_mock, logger)
 
-	test_cases := []struct {
-		test_name string
-		data      entities.Session
-		res       int
-		err       error
+	testCases := []struct {
+		testName string
+		data     entities.Session
+		res      bool
+		err      error
 	}{
 		{
-			test_name: "success authenticate",
+			testName: "success authenticate",
 			data: entities.Session{
 				Email:    "fake_email@email.com",
 				Password: "fake_password",
 			},
-			res: 0,
+			res: true,
 			err: nil,
 		},
 		{
-			test_name: "no email error",
+			testName: "no email error",
 			data: entities.Session{
 				Password: "fake_password",
 			},
-			res: -1,
 			err: status.Error(codes.FailedPrecondition, "Missing field 'email'"),
 		},
 		{
-			test_name: "no password error",
+			testName: "no password error",
 			data: entities.Session{
 				Email: "fake_email@email.com",
 			},
-			res: -1,
 			err: status.Error(codes.FailedPrecondition, "Missing field 'password'"),
 		},
 		{
-			test_name: "user not found error",
+			testName: "user not found error",
 			data: entities.Session{
 				Email:    "no_real@email.com",
 				Password: "fake_password",
 			},
-			res: -1,
 			err: status.Error(codes.NotFound, "User not found"),
 		},
 		{
-			test_name: "invalid password error",
+			testName: "invalid password error",
 			data: entities.Session{
 				Email:    "user@email.com",
 				Password: "invalid_password",
 			},
-			res: -1,
 			err: status.Error(codes.Unauthenticated, "Password or email error"),
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			ctx := context.Background()
 			assert := assert.New(t)
@@ -135,30 +137,28 @@ func TestAuthenticate(t *testing.T) {
 			res, err := http_service.Authenticate(ctx, tc.data.Email, tc.data.Password)
 
 			// assert
-			if tc.res >= 0 {
-				assert.NotEmpty(res)
-			} else {
-				assert.Empty(res)
-			}
+			assert.Equal(tc.res, res)
 			assert.True(service.TestErrors(err, tc.err))
 		})
 	}
 }
 
 func TestUpdateUser(t *testing.T) {
+	var http_service service.HTTPServicer
 	repository_mock := new(service.RepoMock)
-	http_service := service.NewHttpService(repository_mock, service.InitLogger())
+	logger := log.NewLogfmtLogger(os.Stderr)
+	http_service = service.NewHTTPService(repository_mock, logger)
 
-	test_cases := []struct {
-		test_name string
-		data      entities.UserUpdate
-		res       bool
-		err       error
+	testCases := []struct {
+		testName string
+		data     entities.UserUpdate
+		res      bool
+		err      error
 	}{
 		{
-			test_name: "update user success",
+			testName: "update user success",
 			data: entities.UserUpdate{
-				UserId: 1,
+				UserID: 1,
 				User: entities.User{
 					Email:    "new_email@domain.com",
 					Password: "new_password",
@@ -170,9 +170,9 @@ func TestUpdateUser(t *testing.T) {
 			err: nil,
 		},
 		{
-			test_name: "no email error",
+			testName: "no email error",
 			data: entities.UserUpdate{
-				UserId: 1,
+				UserID: 1,
 				User: entities.User{
 					Password: "new_password",
 					Age:      23,
@@ -183,9 +183,9 @@ func TestUpdateUser(t *testing.T) {
 			err: status.Error(codes.FailedPrecondition, "Missing field 'email'"),
 		},
 		{
-			test_name: "no password error",
+			testName: "no password error",
 			data: entities.UserUpdate{
-				UserId: 1,
+				UserID: 1,
 				User: entities.User{
 					Email:   "new_email@domain.com",
 					Age:     23,
@@ -196,9 +196,9 @@ func TestUpdateUser(t *testing.T) {
 			err: status.Error(codes.FailedPrecondition, "Missing field 'password'"),
 		},
 		{
-			test_name: "user not found error",
+			testName: "user not found error",
 			data: entities.UserUpdate{
-				UserId: 2,
+				UserID: 2,
 				User: entities.User{
 					Email:    "new_email@domain.com",
 					Password: "new_password",
@@ -211,14 +211,14 @@ func TestUpdateUser(t *testing.T) {
 		},
 	}
 
-	for _, tc := range test_cases {
+	for _, tc := range testCases {
 		// prepare
 		ctx := context.Background()
 		assert := assert.New(t)
 
 		// act
 		repository_mock.On("UpdateUser", ctx, tc.data).Return(tc.res, tc.err)
-		res, err := http_service.UpdateUser(ctx, tc.data.UserId, tc.data.Email, tc.data.Password, tc.data.Age, tc.data.Details)
+		res, err := http_service.UpdateUser(ctx, tc.data.UserID, tc.data.Email, tc.data.Password, tc.data.Age, tc.data.Details)
 
 		// assert
 		assert.Equal(tc.res, res)
@@ -227,18 +227,20 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestGetUser(t *testing.T) {
+	var http_service service.HTTPServicer
 	repository_mock := new(service.RepoMock)
-	http_service := service.NewHttpService(repository_mock, service.InitLogger())
+	logger := log.NewLogfmtLogger(os.Stderr)
+	http_service = service.NewHTTPService(repository_mock, logger)
 
-	test_cases := []struct {
-		test_name string
-		data      int
-		res       entities.User
-		err       error
+	testCases := []struct {
+		testName string
+		data     int
+		res      entities.User
+		err      error
 	}{
 		{
-			test_name: "user found success",
-			data:      1,
+			testName: "user found success",
+			data:     1,
 			res: entities.User{
 				Email:    "email@domain.com",
 				Password: "password",
@@ -248,13 +250,13 @@ func TestGetUser(t *testing.T) {
 		},
 
 		{
-			test_name: "user found success",
-			data:      2,
-			err:       status.Error(codes.NotFound, "User not found"),
+			testName: "user found success",
+			data:     2,
+			err:      status.Error(codes.NotFound, "User not found"),
 		},
 	}
 
-	for _, tc := range test_cases {
+	for _, tc := range testCases {
 		// prepare
 		ctx := context.Background()
 		assert := assert.New(t)
@@ -270,30 +272,32 @@ func TestGetUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
+	var http_service service.HTTPServicer
 	repository_mock := new(service.RepoMock)
-	http_service := service.NewHttpService(repository_mock, service.InitLogger())
+	logger := log.NewLogfmtLogger(os.Stderr)
+	http_service = service.NewHTTPService(repository_mock, logger)
 
-	test_cases := []struct {
-		test_name string
-		data      int
-		res       bool
-		err       error
+	testCases := []struct {
+		testName string
+		data     int
+		res      bool
+		err      error
 	}{
 		{
-			test_name: "user deleted success",
-			data:      1,
-			res:       true,
-			err:       nil,
+			testName: "user deleted success",
+			data:     1,
+			res:      true,
+			err:      nil,
 		},
 		{
-			test_name: "user not found error",
-			data:      2,
-			res:       false,
-			err:       status.Error(codes.NotFound, "User not found"),
+			testName: "user not found error",
+			data:     2,
+			res:      false,
+			err:      status.Error(codes.NotFound, "User not found"),
 		},
 	}
 
-	for _, tc := range test_cases {
+	for _, tc := range testCases {
 		// prepare
 		ctx := context.Background()
 		assert := assert.New(t)

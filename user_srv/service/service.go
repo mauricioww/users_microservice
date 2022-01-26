@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/mauricioww/user_microsrv/errors"
 	"github.com/mauricioww/user_microsrv/helpers"
@@ -11,44 +11,50 @@ import (
 	"github.com/mauricioww/user_microsrv/user_srv/repository"
 )
 
-type GrpcUserService interface {
+// GrpcUserServicer describe the business logic used to do validations and operations
+type GrpcUserServicer interface {
 	CreateUser(ctx context.Context, email string, pwd string, age int) (int, error)
-	Authenticate(ctx context.Context, email string, pwd string) (int, error)
+	Authenticate(ctx context.Context, email string, pwd string) (bool, error)
 	UpdateUser(ctx context.Context, id int, email string, pwd string, age int) (bool, error)
 	GetUser(ctx context.Context, id int) (entities.User, error)
 	DeleteUser(ctx context.Context, id int) (bool, error)
 }
 
-type grpcUserService struct {
-	repository repository.UserRepository
+// GrpcUserService implements the GrpcUserServicer interface
+type GrpcUserService struct {
+	repository repository.UserRepositorier
 	logger     log.Logger
 }
 
-func NewGrpcUserService(r repository.UserRepository, l log.Logger) GrpcUserService {
-	return &grpcUserService{
+// NewGrpcUserService returns a GrpcUserService pointer type
+func NewGrpcUserService(r repository.UserRepositorier, l log.Logger) *GrpcUserService {
+	return &GrpcUserService{
 		repository: r,
 		logger:     l,
 	}
 }
 
-func (g *grpcUserService) CreateUser(ctx context.Context, email string, pwd string, age int) (int, error) {
+// CreateUser does the both email and password validations and send the data to repository layer
+func (g *GrpcUserService) CreateUser(ctx context.Context, email string, pwd string, age int) (int, error) {
 	logger := log.With(g.logger, "method", "create_user")
 
 	if email == "" {
 		e := errors.NewBadRequestEmailError()
 		level.Error(logger).Log("validation: ", e)
 		return -1, e
-	} else if pwd == "" {
+	}
+
+	if pwd == "" {
 		e := errors.NewBadRequestPasswordError()
 		level.Error(logger).Log("validation: ", e)
 		return -1, e
 	}
 
-	ciphered_pwd := helpers.Cipher(pwd)
+	cipheredPwd := helpers.Cipher(pwd)
 
 	user := entities.User{
 		Email:    email,
-		Password: ciphered_pwd,
+		Password: cipheredPwd,
 		Age:      age,
 	}
 
@@ -56,24 +62,27 @@ func (g *grpcUserService) CreateUser(ctx context.Context, email string, pwd stri
 
 	if err != nil {
 		level.Error(logger).Log("ERROR", err)
-	} else {
-		logger.Log("action", "success")
+		return -1, err
 	}
 
-	return res, err
+	logger.Log("action", "success")
+	return res, nil
 }
 
-func (g *grpcUserService) Authenticate(ctx context.Context, email string, pwd string) (int, error) {
+// Authenticate does the both email and password validations and send the data to repository layer
+func (g *GrpcUserService) Authenticate(ctx context.Context, email string, pwd string) (bool, error) {
 	logger := log.With(g.logger, "method", "authenticate")
 
 	if email == "" {
 		e := errors.NewBadRequestEmailError()
 		level.Error(logger).Log("validation: ", e)
-		return -1, e
-	} else if pwd == "" {
+		return false, e
+	}
+
+	if pwd == "" {
 		e := errors.NewBadRequestPasswordError()
 		level.Error(logger).Log("validation: ", e)
-		return -1, e
+		return false, e
 	}
 
 	auth := entities.Session{
@@ -81,83 +90,88 @@ func (g *grpcUserService) Authenticate(ctx context.Context, email string, pwd st
 		Password: pwd,
 	}
 
-	hashed_pwd, err := g.repository.Authenticate(ctx, &auth)
+	hashedPwd, err := g.repository.Authenticate(ctx, &auth)
 
 	if err != nil {
 		level.Error(logger).Log("ERROR", err)
-		return -1, err
-	} else if ciphered_pwd := helpers.Cipher(auth.Password); ciphered_pwd != hashed_pwd {
+		return false, err
+	}
+
+	if cipheredPwd := helpers.Cipher(auth.Password); cipheredPwd != hashedPwd {
 		e := errors.NewUnauthenticatedError()
 		level.Error(logger).Log("ERROR", e)
-		return -1, e
+		return false, e
 	}
 
 	logger.Log("action", "success")
-	return auth.Id, nil
+	return true, nil
 }
 
-func (g *grpcUserService) UpdateUser(ctx context.Context, id int, email string, pwd string, age int) (bool, error) {
+// UpdateUser does the both email and password validations and send the data to repository layer
+func (g *GrpcUserService) UpdateUser(ctx context.Context, id int, email string, pwd string, age int) (bool, error) {
 	logger := log.With(g.logger, "method", "update_user")
 
 	if email == "" {
 		e := errors.NewBadRequestEmailError()
 		level.Error(logger).Log("validation: ", e)
 		return false, e
-	} else if pwd == "" {
+	}
+
+	if pwd == "" {
 		e := errors.NewBadRequestPasswordError()
 		level.Error(logger).Log("validation: ", e)
 		return false, e
 	}
 
-	ciphered_pwd := helpers.Cipher(pwd)
-	var res bool
+	cipheredPwd := helpers.Cipher(pwd)
 
-	update_info := entities.Update{
-		UserId: id,
+	updateInfo := entities.Update{
+		UserID: id,
 		User: entities.User{
 			Email:    email,
-			Password: ciphered_pwd,
+			Password: cipheredPwd,
 			Age:      age,
 		},
 	}
 
-	u, err := g.repository.UpdateUser(ctx, update_info)
+	u, err := g.repository.UpdateUser(ctx, updateInfo)
 
 	if err != nil {
 		level.Error(logger).Log("ERROR", err)
-	} else if u.Email == email && helpers.Decipher(u.Password) == pwd && u.Age == age {
-		logger.Log("action", "success")
-		res = true
+		return false, err
 	}
 
-	return res, err
+	logger.Log("action", "success")
+	return u.Email == email && helpers.Decipher(u.Password) == pwd && u.Age == age, err
 }
 
-func (g *grpcUserService) GetUser(ctx context.Context, id int) (entities.User, error) {
+// GetUser receives one ID and send it to repository layer
+func (g *GrpcUserService) GetUser(ctx context.Context, id int) (entities.User, error) {
 	logger := log.With(g.logger, "method", "get_user")
 
 	res, err := g.repository.GetUser(ctx, id)
 
 	if err != nil {
 		level.Error(logger).Log("ERROR", err)
-	} else {
-		res.Password = helpers.Decipher(res.Password)
-		logger.Log("action", "success")
+		return entities.User{}, err
 	}
 
+	logger.Log("action", "success")
+	res.Password = helpers.Decipher(res.Password)
 	return res, err
 }
 
-func (g *grpcUserService) DeleteUser(ctx context.Context, id int) (bool, error) {
+// DeleteUser receives one ID and send it to repository layer
+func (g *GrpcUserService) DeleteUser(ctx context.Context, id int) (bool, error) {
 	logger := log.With(g.logger, "method", "delete_user")
 
 	res, err := g.repository.DeleteUser(ctx, id)
 
 	if err != nil {
 		level.Error(logger).Log("ERROR", err)
-	} else {
-		logger.Log("action", "success")
+		return false, err
 	}
 
+	logger.Log("action", "success")
 	return res, err
 }

@@ -2,38 +2,38 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"strconv"
-	"time"
 
-	"github.com/dgrijalva/jwt-go"
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/mauricioww/user_microsrv/http_srv/entities"
 	"github.com/mauricioww/user_microsrv/http_srv/repository"
 )
 
-type HttpService interface {
+// HTTPServicer describes the logic business of the services
+type HTTPServicer interface {
 	CreateUser(ctx context.Context, email string, pwd string, age int, details entities.Details) (int, error)
-	Authenticate(ctx context.Context, email string, pwd string) (string, error)
-	UpdateUser(ctx context.Context, user_id int, email string, pwd string, age int, details entities.Details) (bool, error)
-	GetUser(ctx context.Context, user_id int) (entities.User, error)
-	DeleteUser(ctx context.Context, user_id int) (bool, error)
+	Authenticate(ctx context.Context, email string, pwd string) (bool, error)
+	UpdateUser(ctx context.Context, userID int, email string, pwd string, age int, details entities.Details) (bool, error)
+	GetUser(ctx context.Context, userID int) (entities.User, error)
+	DeleteUser(ctx context.Context, userID int) (bool, error)
 }
 
-type httpService struct {
-	repository repository.HttpRepository
+// HTTPService type implement the HTTPServicer interface
+type HTTPService struct {
+	repository repository.HTTPRepositorier
 	logger     log.Logger
 }
 
-func NewHttpService(r repository.HttpRepository, l log.Logger) HttpService {
-	return &httpService{
+// NewHTTPService returns a HTTPService pointer type
+func NewHTTPService(r repository.HTTPRepositorier, l log.Logger) *HTTPService {
+	return &HTTPService{
 		logger:     l,
 		repository: r,
 	}
 }
 
-func (s *httpService) CreateUser(ctx context.Context, email string, pwd string, age int, details entities.Details) (int, error) {
+// CreateUser receives data for a new user and send it to the repository
+func (s *HTTPService) CreateUser(ctx context.Context, email string, pwd string, age int, details entities.Details) (int, error) {
 	logger := log.With(s.logger, "method", "create_user")
 
 	user := entities.User{
@@ -46,19 +46,17 @@ func (s *httpService) CreateUser(ctx context.Context, email string, pwd string, 
 	res, err := s.repository.CreateUser(ctx, user)
 
 	if err != nil {
-		fmt.Println("Create Error")
-		fmt.Printf("Service %+v\n", err)
 		level.Error(logger).Log("ERROR: ", err)
-	} else {
-		logger.Log("action", "success")
+		return -1, err
 	}
 
-	return res, err
+	logger.Log("action", "success")
+	return res, nil
 }
 
-func (s *httpService) Authenticate(ctx context.Context, email string, pwd string) (string, error) {
+// Authenticate receives data of a user to do a login and send it to repository
+func (s *HTTPService) Authenticate(ctx context.Context, email string, pwd string) (bool, error) {
 	logger := log.With(s.logger, "method", "authenticate")
-	var response string
 
 	session := entities.Session{
 		Email:    email,
@@ -69,32 +67,18 @@ func (s *httpService) Authenticate(ctx context.Context, email string, pwd string
 
 	if err != nil {
 		level.Error(logger).Log("ERROR: ", err)
-		return "", err
-	}
-
-	if res >= 0 {
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"user_id": strconv.Itoa(res),
-			"email":   session.Email,
-			"exp":     time.Now().Add(time.Minute * 15).Unix(),
-		})
-
-		response, err = token.SignedString([]byte("this_is_a_secret_shhh"))
-
-		if err != nil {
-			level.Error(logger).Log("ERROR: ", err)
-			return "", err
-		}
+		return false, err
 	}
 
 	logger.Log("action", "success")
-	return response, nil
+	return res, nil
 }
 
-func (s *httpService) UpdateUser(ctx context.Context, user_id int, email string, pwd string, age int, details entities.Details) (bool, error) {
+// UpdateUser receives new data to replace the old data of a user and send it to repository
+func (s *HTTPService) UpdateUser(ctx context.Context, userID int, email string, pwd string, age int, details entities.Details) (bool, error) {
 	logger := log.With(s.logger, "method", "update_user")
-	info_update := entities.UserUpdate{
-		UserId: user_id,
+	info := entities.UserUpdate{
+		UserID: userID,
 		User: entities.User{
 			Email:    email,
 			Password: pwd,
@@ -103,41 +87,43 @@ func (s *httpService) UpdateUser(ctx context.Context, user_id int, email string,
 		},
 	}
 
-	res, err := s.repository.UpdateUser(ctx, info_update)
+	res, err := s.repository.UpdateUser(ctx, info)
 
 	if err != nil {
 		level.Error(logger).Log("ERROR: ", err)
-	} else {
-		logger.Log("action", "success")
+		return false, err
 	}
 
-	return res, err
+	logger.Log("action", "success")
+	return res, nil
 }
 
-func (s *httpService) GetUser(ctx context.Context, user_id int) (entities.User, error) {
+// GetUser receives one ID and send it to repository
+func (s *HTTPService) GetUser(ctx context.Context, userID int) (entities.User, error) {
 	logger := log.With(s.logger, "method", "get_user")
 
-	res, err := s.repository.GetUser(ctx, user_id)
+	res, err := s.repository.GetUser(ctx, userID)
 
 	if err != nil {
 		level.Error(logger).Log("ERROR: ", err)
-	} else {
-		logger.Log("action", "success")
+		return entities.User{}, err
 	}
 
-	return res, err
+	logger.Log("action", "success")
+	return res, nil
 }
 
-func (s *httpService) DeleteUser(ctx context.Context, user_id int) (bool, error) {
+// DeleteUser receives one ID and send it to repository
+func (s *HTTPService) DeleteUser(ctx context.Context, userID int) (bool, error) {
 	logger := log.With(s.logger, "method", "delete_user")
 
-	res, err := s.repository.DeleteUser(ctx, user_id)
+	res, err := s.repository.DeleteUser(ctx, userID)
 
 	if err != nil {
 		level.Error(logger).Log("ERROR: ", err)
-	} else {
-		logger.Log("action", "success")
+		return false, err
 	}
 
-	return res, err
+	logger.Log("action", "success")
+	return res, nil
 }

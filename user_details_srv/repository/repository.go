@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/mauricioww/user_microsrv/errors"
 	"github.com/mauricioww/user_microsrv/helpers"
 	"github.com/mauricioww/user_microsrv/user_details_srv/entities"
@@ -11,32 +11,37 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type UserDetailsRepository interface {
+// UserDetailsRepositorier describes the methods used to do DB operations
+type UserDetailsRepositorier interface {
 	SetUserDetails(ctx context.Context, info entities.UserDetails) (bool, error)
-	GetUserDetails(ctx context.Context, user_id int) (entities.UserDetails, error)
-	DeleteUserDetails(ctx context.Context, user_id int) (bool, error)
+	GetUserDetails(ctx context.Context, UserID int) (entities.UserDetails, error)
+	DeleteUserDetails(ctx context.Context, UserID int) (bool, error)
 }
 
-type userDetailsRepository struct {
+// UserDetailsRepository implements the UserDetailsRepositorier interface
+type UserDetailsRepository struct {
 	db     *mongo.Database
 	logger log.Logger
 }
 
-func NewUserDetailsRepository(mongo_db *mongo.Database, l log.Logger) UserDetailsRepository {
-	return &userDetailsRepository{
-		db:     mongo_db,
+// NewUserDetailsRepository returns a UserDetailsRepository pointer type
+func NewUserDetailsRepository(mongoDb *mongo.Database, l log.Logger) *UserDetailsRepository {
+	return &UserDetailsRepository{
+		db:     mongoDb,
 		logger: log.With(l, "repository", "mongodb"),
 	}
 }
 
-func (r *userDetailsRepository) SetUserDetails(ctx context.Context, details entities.UserDetails) (bool, error) {
+// SetUserDetails does the DB operation to insert or update information for a specific user
+func (r *UserDetailsRepository) SetUserDetails(ctx context.Context, details entities.UserDetails) (bool, error) {
 	collection := r.db.Collection("information")
+	details.Active = true
 	var err error
 
-	if helpers.NoExists(collection, ctx, details.UserId) {
+	if helpers.NoExists(ctx, collection, details.UserID) {
 		_, err = collection.InsertOne(ctx, helpers.BuildInsertBson(details))
 	} else {
-		_, err = collection.UpdateByID(ctx, details.UserId, helpers.BuildUpdateBson(details))
+		_, err = collection.UpdateByID(ctx, details.UserID, helpers.BuildUpdateBson(details))
 	}
 
 	if err != nil {
@@ -46,25 +51,38 @@ func (r *userDetailsRepository) SetUserDetails(ctx context.Context, details enti
 	return true, nil
 }
 
-func (r *userDetailsRepository) GetUserDetails(ctx context.Context, user_id int) (entities.UserDetails, error) {
+// GetUserDetails fetchs the information within the DB about a specific user
+func (r *UserDetailsRepository) GetUserDetails(ctx context.Context, UserID int) (entities.UserDetails, error) {
 	collection := r.db.Collection("information")
 	var res entities.UserDetails
 
-	if helpers.NoExists(collection, ctx, user_id) {
+	if helpers.NoExists(ctx, collection, UserID) {
 		return res, errors.NewUserNotFoundError()
-	} else if err := collection.FindOne(ctx, bson.D{{"_id", user_id}}).Decode(&res); err != nil {
+	}
+
+	if err := collection.FindOne(ctx, bson.D{{"_id", UserID}}).Decode(&res); err != nil {
 		return res, errors.NewInternalError()
 	}
 
 	return res, nil
 }
 
-func (r *userDetailsRepository) DeleteUserDetails(ctx context.Context, user_id int) (bool, error) {
+// DeleteUserDetails does a soft delete operation over a specific user
+func (r *UserDetailsRepository) DeleteUserDetails(ctx context.Context, UserID int) (bool, error) {
 	collection := r.db.Collection("information")
+	var data entities.UserDetails
 
-	if helpers.NoExists(collection, ctx, user_id) {
+	if helpers.NoExists(ctx, collection, UserID) {
 		return false, errors.NewUserNotFoundError()
-	} else if _, err := collection.DeleteOne(ctx, bson.D{{"_id", user_id}}); err != nil {
+	}
+
+	if err := collection.FindOne(ctx, bson.D{{"_id", UserID}}).Decode(&data); err != nil {
+		return false, errors.NewInternalError()
+	}
+
+	data.Active = false
+
+	if _, err := collection.UpdateByID(ctx, UserID, helpers.BuildUpdateBson(data)); err != nil {
 		return false, errors.NewInternalError()
 	}
 

@@ -4,51 +4,52 @@ import (
 	"context"
 	"errors"
 
-	grpc_gokit "github.com/go-kit/kit/transport/grpc"
-	grpc_err "github.com/mauricioww/user_microsrv/errors"
+	grpcGokit "github.com/go-kit/kit/transport/grpc"
+	grpcError "github.com/mauricioww/user_microsrv/errors"
 	"google.golang.org/grpc/status"
 
 	"github.com/mauricioww/user_microsrv/user_srv/userpb"
 )
 
 type gRPCServer struct {
-	createUser   grpc_gokit.Handler
-	authenticate grpc_gokit.Handler
-	updateUser   grpc_gokit.Handler
-	getUser      grpc_gokit.Handler
-	deleteUser   grpc_gokit.Handler
+	createUser   grpcGokit.Handler
+	authenticate grpcGokit.Handler
+	updateUser   grpcGokit.Handler
+	getUser      grpcGokit.Handler
+	deleteUser   grpcGokit.Handler
 
 	userpb.UnimplementedUserServiceServer
 }
 
-func NewGrpcUserServer(grpc_endpoints GrpcUserServiceEndpoints) userpb.UserServiceServer {
+// NewGrpcUserServer returns the server with the endpoints and the specifications for each one
+func NewGrpcUserServer(endpoints GrpcEndpoints) userpb.UserServiceServer {
 	return &gRPCServer{
-		createUser: grpc_gokit.NewServer(
-			grpc_endpoints.CreateUser,
+		createUser: grpcGokit.NewServer(
+			endpoints.CreateUser,
 			decodeCreateUserRequest,
 			encodeCreateUserResponse,
 		),
 
-		authenticate: grpc_gokit.NewServer(
-			grpc_endpoints.Authenticate,
+		authenticate: grpcGokit.NewServer(
+			endpoints.Authenticate,
 			decodeAuthenticateRequest,
 			encodeAuthenticateResponse,
 		),
 
-		updateUser: grpc_gokit.NewServer(
-			grpc_endpoints.UpdateUser,
+		updateUser: grpcGokit.NewServer(
+			endpoints.UpdateUser,
 			decodeUpdateUserRequest,
 			encondeUpdateUserResponse,
 		),
 
-		getUser: grpc_gokit.NewServer(
-			grpc_endpoints.GetUser,
+		getUser: grpcGokit.NewServer(
+			endpoints.GetUser,
 			decodeGetUserRequest,
 			encodeGetUserResponse,
 		),
 
-		deleteUser: grpc_gokit.NewServer(
-			grpc_endpoints.DeleteUser,
+		deleteUser: grpcGokit.NewServer(
+			endpoints.DeleteUser,
 			decodeDeleteUserRequest,
 			encondeDeleteUserResponse,
 		),
@@ -56,16 +57,16 @@ func NewGrpcUserServer(grpc_endpoints GrpcUserServiceEndpoints) userpb.UserServi
 }
 
 func decodeCreateUserRequest(_ context.Context, request interface{}) (interface{}, error) {
-	create_pb, ok := request.(*userpb.CreateUserRequest)
+	createPb, ok := request.(*userpb.CreateUserRequest)
 
 	if !ok {
-		return nil, errors.New("No proto message 'CreateUserRequest'")
+		return nil, errors.New("no proto message 'CreateUserRequest'")
 	}
 
 	req := CreateUserRequest{
-		Email:    create_pb.GetEmail(),
-		Password: create_pb.GetPassword(),
-		Age:      int(create_pb.GetAge()),
+		Email:    createPb.GetEmail(),
+		Password: createPb.GetPassword(),
+		Age:      int(createPb.GetAge()),
 	}
 
 	return req, nil
@@ -73,19 +74,19 @@ func decodeCreateUserRequest(_ context.Context, request interface{}) (interface{
 
 func encodeCreateUserResponse(_ context.Context, response interface{}) (interface{}, error) {
 	res := response.(CreateUserResponse)
-	return &userpb.CreateUserResponse{Id: int32(res.Id)}, nil
+	return &userpb.CreateUserResponse{Id: int32(res.UserID)}, nil
 }
 
 func decodeAuthenticateRequest(_ context.Context, request interface{}) (interface{}, error) {
-	auth_pb, ok := request.(*userpb.AuthenticateRequest)
+	authPb, ok := request.(*userpb.AuthenticateRequest)
 
 	if !ok {
-		return nil, errors.New("No proto message 'AuthenticateRequest'")
+		return nil, errors.New("no proto message 'AuthenticateRequest'")
 	}
 
 	req := AuthenticateRequest{
-		Email:    auth_pb.GetEmail(),
-		Password: auth_pb.GetPassword(),
+		Email:    authPb.GetEmail(),
+		Password: authPb.GetPassword(),
 	}
 
 	return req, nil
@@ -94,21 +95,21 @@ func decodeAuthenticateRequest(_ context.Context, request interface{}) (interfac
 func encodeAuthenticateResponse(_ context.Context, response interface{}) (interface{}, error) {
 	res := response.(AuthenticateResponse)
 
-	return &userpb.AuthenticateResponse{UserId: int32(res.Id)}, nil
+	return &userpb.AuthenticateResponse{Success: res.Success}, nil
 }
 
 func decodeUpdateUserRequest(_ context.Context, request interface{}) (interface{}, error) {
-	update_pb, ok := request.(*userpb.UpdateUserRequest)
+	updatePb, ok := request.(*userpb.UpdateUserRequest)
 
 	if !ok {
-		return nil, errors.New("No proto message 'UpdateUserRequest'")
+		return nil, errors.New("no proto message 'UpdateUserRequest'")
 	}
 
 	req := UpdateUserRequest{
-		Id:       int(update_pb.GetId()),
-		Email:    update_pb.GetEmail(),
-		Password: update_pb.GetPassword(),
-		Age:      int(update_pb.GetAge()),
+		UserID:   int(updatePb.GetId()),
+		Email:    updatePb.GetEmail(),
+		Password: updatePb.GetPassword(),
+		Age:      int(updatePb.GetAge()),
 	}
 
 	return req, nil
@@ -121,14 +122,14 @@ func encondeUpdateUserResponse(_ context.Context, response interface{}) (interfa
 }
 
 func decodeGetUserRequest(_ context.Context, request interface{}) (interface{}, error) {
-	get_pb, ok := request.(*userpb.GetUserRequest)
+	getPb, ok := request.(*userpb.GetUserRequest)
 
 	if !ok {
-		return nil, errors.New("No proto message 'GetUserRequest'")
+		return nil, errors.New("no proto message 'GetUserRequest'")
 	}
 
 	req := GetUserRequest{
-		UserId: int(get_pb.GetId()),
+		UserID: int(getPb.GetId()),
 	}
 
 	return req, nil
@@ -145,14 +146,14 @@ func encodeGetUserResponse(_ context.Context, response interface{}) (interface{}
 }
 
 func decodeDeleteUserRequest(_ context.Context, request interface{}) (interface{}, error) {
-	delete_pb, ok := request.(*userpb.DeleteUserRequest)
+	deletePb, ok := request.(*userpb.DeleteUserRequest)
 
 	if !ok {
-		return nil, errors.New("No proto message 'DeleteUserRequest'")
+		return nil, errors.New("no proto message 'DeleteUserRequest'")
 	}
 
 	req := DeleteUserRequest{
-		UserId: int(delete_pb.GetId()),
+		UserID: int(deletePb.GetId()),
 	}
 
 	return req, nil
@@ -168,7 +169,11 @@ func (g *gRPCServer) CreateUser(ctx context.Context, req *userpb.CreateUserReque
 	_, res, err := g.createUser.ServeGRPC(ctx, req)
 
 	if err != nil {
-		e, _ := err.(grpc_err.ErrorResolver)
+		e, ok := err.(grpcError.ErrorResolver)
+		if !ok {
+			u := grpcError.NewUnknownError()
+			return nil, status.Error(u.GrpcCode(), u.Error())
+		}
 		return nil, status.Error(e.GrpcCode(), err.Error())
 	}
 
@@ -179,7 +184,11 @@ func (g *gRPCServer) Authenticate(ctx context.Context, req *userpb.AuthenticateR
 	_, res, err := g.authenticate.ServeGRPC(ctx, req)
 
 	if err != nil {
-		e, _ := err.(grpc_err.ErrorResolver)
+		e, ok := err.(grpcError.ErrorResolver)
+		if !ok {
+			u := grpcError.NewUnknownError()
+			return nil, status.Error(u.GrpcCode(), u.Error())
+		}
 		return nil, status.Error(e.GrpcCode(), err.Error())
 	}
 
@@ -190,7 +199,11 @@ func (g *gRPCServer) UpdateUser(ctx context.Context, req *userpb.UpdateUserReque
 	_, res, err := g.updateUser.ServeGRPC(ctx, req)
 
 	if err != nil {
-		e, _ := err.(grpc_err.ErrorResolver)
+		e, ok := err.(grpcError.ErrorResolver)
+		if !ok {
+			u := grpcError.NewUnknownError()
+			return nil, status.Error(u.GrpcCode(), u.Error())
+		}
 		return nil, status.Error(e.GrpcCode(), err.Error())
 	}
 
@@ -201,7 +214,11 @@ func (g *gRPCServer) GetUser(ctx context.Context, req *userpb.GetUserRequest) (*
 	_, res, err := g.getUser.ServeGRPC(ctx, req)
 
 	if err != nil {
-		e, _ := err.(grpc_err.ErrorResolver)
+		e, ok := err.(grpcError.ErrorResolver)
+		if !ok {
+			u := grpcError.NewUnknownError()
+			return nil, status.Error(u.GrpcCode(), u.Error())
+		}
 		return nil, status.Error(e.GrpcCode(), err.Error())
 	}
 
@@ -212,7 +229,11 @@ func (g *gRPCServer) DeleteUser(ctx context.Context, req *userpb.DeleteUserReque
 	_, res, err := g.deleteUser.ServeGRPC(ctx, req)
 
 	if err != nil {
-		e, _ := err.(grpc_err.ErrorResolver)
+		e, ok := err.(grpcError.ErrorResolver)
+		if !ok {
+			u := grpcError.NewUnknownError()
+			return nil, status.Error(u.GrpcCode(), u.Error())
+		}
 		return nil, status.Error(e.GrpcCode(), err.Error())
 	}
 

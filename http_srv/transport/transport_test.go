@@ -17,15 +17,15 @@ import (
 )
 
 func TestCreateUser(t *testing.T) {
-	srv_mock := new(transport.ServiceMock)
-	endpoints := transport.MakeHttpEndpoints(srv_mock)
+	srvMock := new(transport.ServiceMock)
+	endpoints := transport.MakeHTTPEndpoints(srvMock)
 	s := transport.NewHTTPServer(context.Background(), endpoints)
 	server := httptest.NewServer(s)
 
 	defer server.Close()
 
 	test_cases := []struct {
-		test_name  string
+		testName   string
 		body       string
 		data       transport.CreateUserRequest
 		res        int
@@ -33,7 +33,7 @@ func TestCreateUser(t *testing.T) {
 		httpStatus int
 	}{
 		{
-			test_name: "user created succes",
+			testName: "user created succes",
 			body: `
 				{
 					"email": "example@email.com",
@@ -50,7 +50,7 @@ func TestCreateUser(t *testing.T) {
 			httpStatus: 200,
 		},
 		{
-			test_name: "no password error",
+			testName: "no password error",
 			body: `
 				{
 					"email": "example@email.com",
@@ -66,7 +66,7 @@ func TestCreateUser(t *testing.T) {
 			httpStatus: 400,
 		},
 		{
-			test_name: "no email error",
+			testName: "no email error",
 			body: `
 				{
 					"password": "qwerty",
@@ -84,12 +84,12 @@ func TestCreateUser(t *testing.T) {
 	}
 
 	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			assert := assert.New(t)
 
 			// act
-			srv_mock.On("CreateUser", mock.Anything, tc.data.Email, tc.data.Password, tc.data.Age, tc.data.Details).
+			srvMock.On("CreateUser", mock.Anything, tc.data.Email, tc.data.Password, tc.data.Age, tc.data.Details).
 				Return(tc.res, tc.err)
 			res, _ := http.Post(server.URL+"/users", "application/json", strings.NewReader(tc.body))
 
@@ -100,23 +100,23 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestAuthenticate(t *testing.T) {
-	srv_mock := new(transport.ServiceMock)
-	endpoints := transport.MakeHttpEndpoints(srv_mock)
+	srvMock := new(transport.ServiceMock)
+	endpoints := transport.MakeHTTPEndpoints(srvMock)
 	s := transport.NewHTTPServer(context.Background(), endpoints)
 	server := httptest.NewServer(s)
 
 	defer server.Close()
 
 	test_cases := []struct {
-		test_name  string
+		testName   string
 		body       string
 		data       transport.AuthenticateRequest
-		res        string
+		res        bool
 		err        error
 		httpStatus int
 	}{
 		{
-			test_name: "user auth succes",
+			testName: "user auth succes",
 			body: `
 				{
 					"email": "example@email.com",
@@ -126,12 +126,12 @@ func TestAuthenticate(t *testing.T) {
 				Email:    "example@email.com",
 				Password: "querty",
 			},
-			res:        "jwt_token",
+			res:        true,
 			err:        nil,
 			httpStatus: 200,
 		},
 		{
-			test_name: "no password error",
+			testName: "no password error",
 			body: `
 				{
 					"email": "example@email.com"
@@ -144,7 +144,7 @@ func TestAuthenticate(t *testing.T) {
 			httpStatus: 400,
 		},
 		{
-			test_name: "no email error",
+			testName: "no email error",
 			body: `
 				{
 					"password": "qwerty"
@@ -157,7 +157,7 @@ func TestAuthenticate(t *testing.T) {
 			httpStatus: 400,
 		},
 		{
-			test_name: "auth error",
+			testName: "auth error",
 			body: `
 				{
 					"email": "example@email.com",
@@ -174,14 +174,14 @@ func TestAuthenticate(t *testing.T) {
 	}
 
 	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			assert := assert.New(t)
 
 			// act
-			srv_mock.On("Authenticate", mock.Anything, tc.data.Email, tc.data.Password).Return(tc.res, tc.err)
+			srvMock.On("Authenticate", mock.Anything, tc.data.Email, tc.data.Password).Return(tc.res, tc.err)
 
-			req, _ := http.NewRequest("GET", server.URL+"/auth", strings.NewReader(tc.body))
+			req, _ := http.NewRequest("POST", server.URL+"/auth", strings.NewReader(tc.body))
 			res, _ := http.DefaultClient.Do(req)
 
 			// assert
@@ -191,16 +191,16 @@ func TestAuthenticate(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
-	srv_mock := new(transport.ServiceMock)
-	endpoints := transport.MakeHttpEndpoints(srv_mock)
+	srvMock := new(transport.ServiceMock)
+	endpoints := transport.MakeHTTPEndpoints(srvMock)
 	s := transport.NewHTTPServer(context.Background(), endpoints)
 	server := httptest.NewServer(s)
 
 	defer server.Close()
 
 	test_cases := []struct {
-		test_name  string
-		user_id    int
+		testName   string
+		userID     int
 		body       string
 		data       transport.UpdateUserRequest
 		res        bool
@@ -208,8 +208,8 @@ func TestUpdateUser(t *testing.T) {
 		httpStatus int
 	}{
 		{
-			test_name: "user update succes",
-			user_id:   0,
+			testName: "user update succes",
+			userID:   0,
 			body: `
 				{
 					"email": "example@email.com",
@@ -226,8 +226,8 @@ func TestUpdateUser(t *testing.T) {
 			httpStatus: 200,
 		},
 		{
-			test_name: "no password error",
-			user_id:   1,
+			testName: "no password error",
+			userID:   1,
 			body: `
 				{
 					"email": "example@email.com",
@@ -242,8 +242,8 @@ func TestUpdateUser(t *testing.T) {
 			httpStatus: 400,
 		},
 		{
-			test_name: "no email error",
-			user_id:   2,
+			testName: "no email error",
+			userID:   2,
 			body: `
 				{
 					"password": "qwerty",
@@ -258,8 +258,8 @@ func TestUpdateUser(t *testing.T) {
 			httpStatus: 400,
 		},
 		{
-			test_name: "user not found",
-			user_id:   100,
+			testName: "user not found",
+			userID:   100,
 			body: `
 				{
 					"email": "example@email.com",
@@ -278,14 +278,14 @@ func TestUpdateUser(t *testing.T) {
 	}
 
 	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			assert := assert.New(t)
 
 			// act
-			srv_mock.On("UpdateUser", mock.Anything, tc.user_id, tc.data.Email, tc.data.Password, tc.data.Age, tc.data.Details).Return(tc.res, tc.err)
+			srvMock.On("UpdateUser", mock.Anything, tc.userID, tc.data.Email, tc.data.Password, tc.data.Age, tc.data.Details).Return(tc.res, tc.err)
 
-			uri := fmt.Sprintf("%v/users/%v", server.URL, tc.user_id)
+			uri := fmt.Sprintf("%v/users/%v", server.URL, tc.userID)
 			req, _ := http.NewRequest("PUT", uri, strings.NewReader(tc.body))
 			res, _ := http.DefaultClient.Do(req)
 
@@ -296,23 +296,23 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestGetUser(t *testing.T) {
-	srv_mock := new(transport.ServiceMock)
-	endpoints := transport.MakeHttpEndpoints(srv_mock)
+	srvMock := new(transport.ServiceMock)
+	endpoints := transport.MakeHTTPEndpoints(srvMock)
 	s := transport.NewHTTPServer(context.Background(), endpoints)
 	server := httptest.NewServer(s)
 
 	defer server.Close()
 
 	test_cases := []struct {
-		test_name  string
-		user_id    int
+		testName   string
+		userID     int
 		res        entities.User
 		err        error
 		httpStatus int
 	}{
 		{
-			test_name: "user found success",
-			user_id:   0,
+			testName: "user found success",
+			userID:   0,
 			res: entities.User{
 				Email:    "email@domain.com",
 				Password: "passsword",
@@ -321,22 +321,22 @@ func TestGetUser(t *testing.T) {
 			httpStatus: 200,
 		},
 		{
-			test_name:  "user not found error",
-			user_id:    1,
+			testName:   "user not found error",
+			userID:     1,
 			err:        status.Error(codes.NotFound, "User not found"),
 			httpStatus: 404,
 		},
 	}
 
 	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			assert := assert.New(t)
 
 			// act
-			srv_mock.On("GetUser", mock.Anything, tc.user_id).Return(tc.res, tc.err)
+			srvMock.On("GetUser", mock.Anything, tc.userID).Return(tc.res, tc.err)
 
-			uri := fmt.Sprintf("%v/users/%v", server.URL, tc.user_id)
+			uri := fmt.Sprintf("%v/users/%v", server.URL, tc.userID)
 			res, _ := http.Get(uri)
 
 			// assert
@@ -346,44 +346,44 @@ func TestGetUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
-	srv_mock := new(transport.ServiceMock)
-	endpoints := transport.MakeHttpEndpoints(srv_mock)
+	srvMock := new(transport.ServiceMock)
+	endpoints := transport.MakeHTTPEndpoints(srvMock)
 	s := transport.NewHTTPServer(context.Background(), endpoints)
 	server := httptest.NewServer(s)
 
 	defer server.Close()
 
 	test_cases := []struct {
-		test_name  string
-		user_id    int
+		testName   string
+		userID     int
 		res        bool
 		err        error
 		httpStatus int
 	}{
 		{
-			test_name:  "user deleted success",
-			user_id:    0,
+			testName:   "user deleted success",
+			userID:     0,
 			res:        true,
 			err:        nil,
 			httpStatus: 200,
 		},
 		{
-			test_name:  "user not found error",
-			user_id:    1,
+			testName:   "user not found error",
+			userID:     1,
 			err:        status.Error(codes.NotFound, "User not found"),
 			httpStatus: 404,
 		},
 	}
 
 	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			assert := assert.New(t)
 
 			// act
-			srv_mock.On("DeleteUser", mock.Anything, tc.user_id).Return(tc.res, tc.err)
+			srvMock.On("DeleteUser", mock.Anything, tc.userID).Return(tc.res, tc.err)
 
-			uri := fmt.Sprintf("%v/users/%v", server.URL, tc.user_id)
+			uri := fmt.Sprintf("%v/users/%v", server.URL, tc.userID)
 			req, _ := http.NewRequest("DELETE", uri, http.NoBody)
 			res, _ := http.DefaultClient.Do(req)
 

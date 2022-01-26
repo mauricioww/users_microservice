@@ -15,67 +15,67 @@ import (
 )
 
 func TestCreateUser(t *testing.T) {
-	user_mock := new(repository.GrpcUserMock)
-	details_mock := new(repository.GrpcDetailsMock)
-	conn1, conn2, http_repository := repository.InitRepoMock(user_mock, details_mock)
+	userMock := new(repository.GrpcUserMock)
+	detailsMock := new(repository.GrpcDetailsMock)
+	conn1, conn2, httpRepository := repository.InitRepoMock(userMock, detailsMock)
 
 	defer conn1.Close()
 	defer conn2.Close()
 
-	test_cases := []struct {
-		test_name      string
-		user           entities.User
-		repository_res int
-		repository_err error
-		user_err       error
+	testCases := []struct {
+		testName      string
+		user          entities.User
+		repositoryRes int
+		repositoryErr error
+		userErr       error
 	}{
 		{
-			test_name: "user created successfully",
+			testName: "user created successfully",
 			user: entities.User{
 				Email:    "user@email.com",
 				Password: "qwerty",
 				Age:      23,
-				Details:  repository.GenereateDetails(),
+				Details:  repository.GenerateDetails(),
 			},
-			repository_res: 1,
-			user_err:       nil,
+			repositoryRes: 1,
+			userErr:       nil,
 		},
 		{
-			test_name: "no password error",
+			testName: "no password error",
 			user: entities.User{
 				Email:   "user@email.com",
 				Age:     23,
-				Details: repository.GenereateDetails(),
+				Details: repository.GenerateDetails(),
 			},
-			repository_res: -1,
-			user_err:       status.Error(codes.FailedPrecondition, "Missing field 'password'"),
+			repositoryRes: -1,
+			userErr:       status.Error(codes.FailedPrecondition, "Missing field 'password'"),
 		},
 		{
-			test_name: "no email error",
+			testName: "no email error",
 			user: entities.User{
 				Password: "qwerty",
 				Age:      23,
-				Details:  repository.GenereateDetails(),
+				Details:  repository.GenerateDetails(),
 			},
-			repository_res: -1,
-			user_err:       status.Error(codes.FailedPrecondition, "Missing field 'email'"),
+			repositoryRes: -1,
+			userErr:       status.Error(codes.FailedPrecondition, "Missing field 'email'"),
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			//  prepare
 			assert := assert.New(t)
 			ctx := context.Background()
-			var user_res *userpb.CreateUserResponse
-			var details_res *detailspb.SetUserDetailsResponse
-			user_req := &userpb.CreateUserRequest{
+			var userRes *userpb.CreateUserResponse
+			var detailsRes *detailspb.SetUserDetailsResponse
+			userReq := &userpb.CreateUserRequest{
 				Email:    tc.user.Email,
 				Password: tc.user.Password,
 				Age:      uint32(tc.user.Age),
 			}
-			details_req := &detailspb.SetUserDetailsRequest{
-				UserId:       uint32(tc.repository_res),
+			detailsReq := &detailspb.SetUserDetailsRequest{
+				UserId:       uint32(tc.repositoryRes),
 				Country:      tc.user.Country,
 				City:         tc.user.City,
 				MobileNumber: tc.user.MobileNumber,
@@ -84,100 +84,96 @@ func TestCreateUser(t *testing.T) {
 				Weight:       tc.user.Weight,
 			}
 
-			if tc.user_err == nil {
-				user_res = &userpb.CreateUserResponse{Id: int32(tc.repository_res)}
-				details_res = &detailspb.SetUserDetailsResponse{Success: tc.repository_res >= 0}
+			if tc.userErr == nil {
+				userRes = &userpb.CreateUserResponse{Id: int32(tc.repositoryRes)}
+				detailsRes = &detailspb.SetUserDetailsResponse{Success: tc.repositoryRes >= 0}
 			}
 
-			user_mock.On("CreateUser", mock.Anything, user_req).Return(user_res, tc.user_err)
-			details_mock.On("SetUserDetails", mock.Anything, details_req).Return(details_res, nil)
+			userMock.On("CreateUser", mock.Anything, userReq).Return(userRes, tc.userErr)
+			detailsMock.On("SetUserDetails", mock.Anything, detailsReq).Return(detailsRes, nil)
 
 			// act
-			res, err := http_repository.CreateUser(ctx, tc.user)
+			res, err := httpRepository.CreateUser(ctx, tc.user)
 
 			// assert
-			assert.Equal(res, tc.repository_res)
-			assert.True(repository.TestErrors(err, tc.user_err))
+			assert.Equal(res, tc.repositoryRes)
+			assert.True(repository.TestErrors(err, tc.userErr))
 		})
 	}
 }
 
 func TestAuthenticate(t *testing.T) {
-	user_mock := new(repository.GrpcUserMock)
-	details_mock := new(repository.GrpcDetailsMock)
-	conn1, conn2, http_repository := repository.InitRepoMock(user_mock, details_mock)
+	userMock := new(repository.GrpcUserMock)
+	detailsMock := new(repository.GrpcDetailsMock)
+	conn1, conn2, httpRepository := repository.InitRepoMock(userMock, detailsMock)
 
 	defer conn1.Close()
 	defer conn2.Close()
 
-	test_cases := []struct {
-		test_name string
-		data      entities.Session
-		res       int
-		err       error
+	testCases := []struct {
+		testName string
+		data     entities.Session
+		res      bool
+		err      error
 	}{
 		{
-			test_name: "success authenticate",
+			testName: "success authenticate",
 			data: entities.Session{
 				Email:    "fake_email@email.com",
 				Password: "fake_password",
 			},
-			res: 1,
+			res: true,
 			err: nil,
 		},
 		{
-			test_name: "no email error",
+			testName: "no email error",
 			data: entities.Session{
 				Password: "fake_password",
 			},
-			res: -1,
 			err: status.Error(codes.FailedPrecondition, "Missing field 'email'"),
 		},
 		{
-			test_name: "no password error",
+			testName: "no password error",
 			data: entities.Session{
 				Email: "fake_email@email.com",
 			},
-			res: -1,
 			err: status.Error(codes.FailedPrecondition, "Missing field 'password'"),
 		},
 		{
-			test_name: "user not found",
+			testName: "user not found",
 			data: entities.Session{
 				Email:    "no_real@email.com",
 				Password: "fake_password",
 			},
-			res: -1,
 			err: status.Error(codes.NotFound, "User not found"),
 		},
 		{
-			test_name: "invalid password or email",
+			testName: "invalid password or email",
 			data: entities.Session{
 				Email:    "user@email.com",
 				Password: "password",
 			},
-			res: -1,
 			err: status.Error(codes.Unauthenticated, "Password or email error"),
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			//  prepare
 			assert := assert.New(t)
 			ctx := context.Background()
-			var grpc_res *userpb.AuthenticateResponse
-			grpc_req := &userpb.AuthenticateRequest{
+			var userRes *userpb.AuthenticateResponse
+			userReq := &userpb.AuthenticateRequest{
 				Email:    tc.data.Email,
 				Password: tc.data.Password,
 			}
 			if tc.err == nil {
-				grpc_res = &userpb.AuthenticateResponse{UserId: int32(tc.res)}
+				userRes = &userpb.AuthenticateResponse{Success: tc.res}
 			}
 
 			// act
-			user_mock.On("Authenticate", mock.Anything, grpc_req).Return(grpc_res, tc.err)
-			res, err := http_repository.Authenticate(ctx, tc.data)
+			userMock.On("Authenticate", mock.Anything, userReq).Return(userRes, tc.err)
+			res, err := httpRepository.Authenticate(ctx, tc.data)
 
 			// assert
 			assert.True(repository.TestErrors(err, tc.err))
@@ -187,87 +183,87 @@ func TestAuthenticate(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
-	user_mock := new(repository.GrpcUserMock)
-	details_mock := new(repository.GrpcDetailsMock)
-	conn1, conn2, http_repository := repository.InitRepoMock(user_mock, details_mock)
+	userMock := new(repository.GrpcUserMock)
+	detailsMock := new(repository.GrpcDetailsMock)
+	conn1, conn2, httpRepository := repository.InitRepoMock(userMock, detailsMock)
 
 	defer conn1.Close()
 	defer conn2.Close()
 
-	test_cases := []struct {
-		test_name string
-		data      entities.UserUpdate
-		res       bool
-		err       error
+	testCases := []struct {
+		testName string
+		data     entities.UserUpdate
+		res      bool
+		err      error
 	}{
 		{
-			test_name: "Update email successfully",
+			testName: "Update email successfully",
 			data: entities.UserUpdate{
-				UserId: 0,
+				UserID: 0,
 				User: entities.User{
 					Email:    "email@domian.com",
 					Password: "qwerty",
 					Age:      23,
-					Details:  repository.GenereateDetails(),
+					Details:  repository.GenerateDetails(),
 				},
 			},
 			res: true,
 			err: nil,
 		},
 		{
-			test_name: "no email error",
+			testName: "no email error",
 			data: entities.UserUpdate{
-				UserId: 1,
+				UserID: 1,
 				User: entities.User{
 					Password: "qwerty",
 					Age:      23,
-					Details:  repository.GenereateDetails(),
+					Details:  repository.GenerateDetails(),
 				},
 			},
 			err: status.Error(codes.FailedPrecondition, "Missing field 'email'"),
 		},
 		{
-			test_name: "no password error",
+			testName: "no password error",
 			data: entities.UserUpdate{
-				UserId: 0,
+				UserID: 0,
 				User: entities.User{
 					Email:   "email@domian.com",
 					Age:     23,
-					Details: repository.GenereateDetails(),
+					Details: repository.GenerateDetails(),
 				},
 			},
 			err: status.Error(codes.FailedPrecondition, "Missing field 'password'"),
 		},
 		{
-			test_name: "user not found error",
+			testName: "user not found error",
 			data: entities.UserUpdate{
-				UserId: 1,
+				UserID: 1,
 				User: entities.User{
 					Email:    "email@domian.com",
 					Password: "qwerty",
 					Age:      23,
-					Details:  repository.GenereateDetails(),
+					Details:  repository.GenerateDetails(),
 				},
 			},
 			err: status.Error(codes.NotFound, "User not found"),
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			//  prepare
 			ctx := context.Background()
 			assert := assert.New(t)
-			var user_res *userpb.UpdateUserResponse
-			var details_res *detailspb.SetUserDetailsResponse
-			user_req := &userpb.UpdateUserRequest{
-				Id:       uint32(tc.data.UserId),
+			var userRes *userpb.UpdateUserResponse
+			var detailsRes *detailspb.SetUserDetailsResponse
+			userReq := &userpb.UpdateUserRequest{
+				Id:       uint32(tc.data.UserID),
 				Email:    tc.data.Email,
 				Password: tc.data.Password,
 				Age:      uint32(tc.data.Age),
 			}
-			details_req := &detailspb.SetUserDetailsRequest{
-				UserId:       uint32(tc.data.UserId),
+			detailsReq := &detailspb.SetUserDetailsRequest{
+				UserId:       uint32(tc.data.UserID),
 				Country:      tc.data.Country,
 				City:         tc.data.City,
 				MobileNumber: tc.data.MobileNumber,
@@ -276,14 +272,14 @@ func TestUpdateUser(t *testing.T) {
 				Weight:       tc.data.Weight,
 			}
 			if tc.err == nil {
-				user_res = &userpb.UpdateUserResponse{Success: tc.res}
-				details_res = &detailspb.SetUserDetailsResponse{Success: tc.res}
+				userRes = &userpb.UpdateUserResponse{Success: tc.res}
+				detailsRes = &detailspb.SetUserDetailsResponse{Success: tc.res}
 			}
 
 			// act
-			user_mock.On("UpdateUser", mock.Anything, user_req).Return(user_res, tc.err)
-			details_mock.On("SetUserDetails", mock.Anything, details_req).Return(details_res, nil)
-			res, err := http_repository.UpdateUser(ctx, tc.data)
+			userMock.On("UpdateUser", mock.Anything, userReq).Return(userRes, tc.err)
+			detailsMock.On("SetUserDetails", mock.Anything, detailsReq).Return(detailsRes, nil)
+			res, err := httpRepository.UpdateUser(ctx, tc.data)
 
 			// assert
 			assert.Equal(res, tc.res)
@@ -293,22 +289,22 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestGetUser(t *testing.T) {
-	user_mock := new(repository.GrpcUserMock)
-	details_mock := new(repository.GrpcDetailsMock)
-	conn1, conn2, http_repository := repository.InitRepoMock(user_mock, details_mock)
+	userMock := new(repository.GrpcUserMock)
+	detailsMock := new(repository.GrpcDetailsMock)
+	conn1, conn2, httpRepository := repository.InitRepoMock(userMock, detailsMock)
 
 	defer conn1.Close()
 	defer conn2.Close()
 
-	test_cases := []struct {
-		test_name string
-		data      int
-		res       entities.User
-		err       error
+	testCases := []struct {
+		testName string
+		data     int
+		res      entities.User
+		err      error
 	}{
 		{
-			test_name: "user found",
-			data:      0,
+			testName: "user found",
+			data:     0,
 			res: entities.User{
 				Email:    "email@domain.com",
 				Password: "password",
@@ -317,39 +313,39 @@ func TestGetUser(t *testing.T) {
 			err: nil,
 		},
 		{
-			test_name: "user not found",
-			data:      1,
-			res:       entities.User{},
-			err:       status.Error(codes.NotFound, "User not found"),
+			testName: "user not found",
+			data:     1,
+			res:      entities.User{},
+			err:      status.Error(codes.NotFound, "User not found"),
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			//  prepare
 			assert := assert.New(t)
 			ctx := context.Background()
-			var user_res *userpb.GetUserResponse
-			var details_res *detailspb.GetUserDetailsResponse
-			user_req := &userpb.GetUserRequest{
+			var userRes *userpb.GetUserResponse
+			var detailsRes *detailspb.GetUserDetailsResponse
+			userReq := &userpb.GetUserRequest{
 				Id: uint32(tc.data),
 			}
-			details_req := &detailspb.GetUserDetailsRequest{
+			detailsReq := &detailspb.GetUserDetailsRequest{
 				UserId: uint32(tc.data),
 			}
 			if tc.err == nil {
-				user_res = &userpb.GetUserResponse{
+				userRes = &userpb.GetUserResponse{
 					Email:    tc.res.Email,
 					Password: tc.res.Password,
 					Age:      uint32(tc.res.Age),
 				}
-				details_res = &detailspb.GetUserDetailsResponse{}
+				detailsRes = &detailspb.GetUserDetailsResponse{}
 			}
 
 			// act
-			user_mock.On("GetUser", mock.Anything, user_req).Return(user_res, tc.err)
-			details_mock.On("GetUserDetails", mock.Anything, details_req).Return(details_res, tc.err)
-			res, err := http_repository.GetUser(ctx, tc.data)
+			userMock.On("GetUser", mock.Anything, userReq).Return(userRes, tc.err)
+			detailsMock.On("GetUserDetails", mock.Anything, detailsReq).Return(detailsRes, tc.err)
+			res, err := httpRepository.GetUser(ctx, tc.data)
 
 			// assert
 			assert.Equal(res, tc.res)
@@ -359,51 +355,51 @@ func TestGetUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
-	user_mock := new(repository.GrpcUserMock)
-	details_mock := new(repository.GrpcDetailsMock)
-	conn1, conn2, http_repository := repository.InitRepoMock(user_mock, details_mock)
+	userMock := new(repository.GrpcUserMock)
+	detailsMock := new(repository.GrpcDetailsMock)
+	conn1, conn2, httpRepository := repository.InitRepoMock(userMock, detailsMock)
 
 	defer conn1.Close()
 	defer conn2.Close()
 
-	test_cases := []struct {
-		test_name string
-		data      int
-		res       bool
-		err       error
+	testCases := []struct {
+		testName string
+		data     int
+		res      bool
+		err      error
 	}{
 		{
-			test_name: "user deleted success",
-			data:      0,
-			res:       true,
-			err:       nil,
+			testName: "user deleted success",
+			data:     0,
+			res:      true,
+			err:      nil,
 		},
 		{
-			test_name: "user delete error",
-			data:      1,
-			res:       false,
-			err:       status.Error(codes.NotFound, "User not found"),
+			testName: "user delete error",
+			data:     1,
+			res:      false,
+			err:      status.Error(codes.NotFound, "User not found"),
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			//  prepare
 			assert := assert.New(t)
 			ctx := context.Background()
-			var user_res *userpb.DeleteUserResponse
-			var details_res *detailspb.DeleteUserDetailsResponse
-			user_req := &userpb.DeleteUserRequest{Id: uint32(tc.data)}
-			details_req := &detailspb.DeleteUserDetailsRequest{UserId: uint32(tc.data)}
+			var userRes *userpb.DeleteUserResponse
+			var detailsRes *detailspb.DeleteUserDetailsResponse
+			userReq := &userpb.DeleteUserRequest{Id: uint32(tc.data)}
+			detailsReq := &detailspb.DeleteUserDetailsRequest{UserId: uint32(tc.data)}
 			if tc.err == nil {
-				user_res = &userpb.DeleteUserResponse{Success: tc.res}
-				details_res = &detailspb.DeleteUserDetailsResponse{Success: tc.res}
+				userRes = &userpb.DeleteUserResponse{Success: tc.res}
+				detailsRes = &detailspb.DeleteUserDetailsResponse{Success: tc.res}
 			}
 
 			// act
-			user_mock.On("DeleteUser", mock.Anything, user_req).Return(user_res, tc.err)
-			details_mock.On("DeleteUserDetails", mock.Anything, details_req).Return(details_res, nil)
-			res, err := http_repository.DeleteUser(ctx, tc.data)
+			userMock.On("DeleteUser", mock.Anything, userReq).Return(userRes, tc.err)
+			detailsMock.On("DeleteUserDetails", mock.Anything, detailsReq).Return(detailsRes, nil)
+			res, err := httpRepository.DeleteUser(ctx, tc.data)
 
 			// assert
 			assert.Equal(res, tc.res)

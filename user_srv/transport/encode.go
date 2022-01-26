@@ -1,25 +1,28 @@
 package transport
 
-type (
-	CreateUserResponse struct {
-		Id int
-	}
+// CreateUserResponse stores the data that gRPC CreateUser method will return
+type CreateUserResponse struct {
+	UserID int
+}
 
-	AuthenticateResponse struct {
-		Id int
-	}
+// AuthenticateResponse stores the data that gRPC Authenticate method will return
+type AuthenticateResponse struct {
+	Success bool
+}
 
-	UpdateUserResponse struct {
-		Success bool
-	}
+// UpdateUserResponse stores the data that gRPC Authenticate method will return
+type UpdateUserResponse struct {
+	Success bool
+}
 
-	GetUserResponse struct {
-		Email    string
-		Password string
-		Age      int
-	}
+// GetUserResponse stores the data that gRPC GetUser method will return
+type GetUserResponse struct {
+	Email    string
+	Password string
+	Age      int
+}
 
-	DeleteUserResponse struct {
-		Success bool
-	}
-)
+// DeleteUserResponse stores the data that gRPC DeleteUser method will return
+type DeleteUserResponse struct {
+	Success bool
+}

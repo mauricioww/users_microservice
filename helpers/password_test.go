@@ -8,90 +8,90 @@ import (
 )
 
 func TestCipherText(t *testing.T) {
-	test_cases := []struct {
-		test_name  string
-		plain_text string
-		res        string
-		flag       bool
+	testCases := []struct {
+		testName  string
+		plainText string
+		res       string
+		flag      bool
 	}{
 		{
-			test_name:  "cipher plain text success",
-			plain_text: "hola",
-			res:        "szwl",
-			flag:       true,
+			testName:  "cipher plain text success",
+			plainText: "hola",
+			res:       "szwl",
+			flag:      true,
 		},
 		{
-			test_name:  "cipher plain text error",
-			plain_text: "hola",
-			res:        "hola",
-			flag:       false,
+			testName:  "cipher plain text error",
+			plainText: "hola",
+			res:       "hola",
+			flag:      false,
 		},
 		{
-			test_name:  "no cipher symbols",
-			plain_text: "¿?¡!.-_",
-			res:        "¿?¡!.-_",
-			flag:       false,
+			testName:  "no cipher symbols",
+			plainText: "¿?¡!.-_",
+			res:       "¿?¡!.-_",
+			flag:      false,
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			assert := assert.New(t)
 
 			// act
-			new_text := helpers.Cipher(tc.plain_text)
+			newText := helpers.Cipher(tc.plainText)
 
 			// assert
 			if tc.flag {
-				assert.Equal(tc.res, new_text)
+				assert.Equal(tc.res, newText)
 			} else {
-				assert.NotEqual(tc.res, new_text)
+				assert.NotEqual(tc.res, newText)
 			}
 		})
 	}
 }
 
 func TestDecipherText(t *testing.T) {
-	test_cases := []struct {
-		test_name string
-		text      string
-		res       string
-		flag      bool
+	testCases := []struct {
+		testName string
+		text     string
+		res      string
+		flag     bool
 	}{
 		{
-			test_name: "decipher text success",
-			text:      "szwl",
-			res:       "hola",
-			flag:      true,
+			testName: "decipher text success",
+			text:     "szwl",
+			res:      "hola",
+			flag:     true,
 		},
 		{
-			test_name: "decipher text error",
-			text:      "hola",
-			res:       "hola",
-			flag:      false,
+			testName: "decipher text error",
+			text:     "hola",
+			res:      "hola",
+			flag:     false,
 		},
 		{
-			test_name: "no decipher symbols",
-			text:      "¿?¡!.-_",
-			res:       "¿?¡!.-_",
-			flag:      false,
+			testName: "no decipher symbols",
+			text:     "¿?¡!.-_",
+			res:      "¿?¡!.-_",
+			flag:     false,
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			assert := assert.New(t)
 
 			// act
-			new_text := helpers.Decipher(tc.text)
+			newText := helpers.Decipher(tc.text)
 
 			// assert
 			if tc.flag {
-				assert.Equal(tc.res, new_text)
+				assert.Equal(tc.res, newText)
 			} else {
-				assert.NotEqual(tc.res, new_text)
+				assert.NotEqual(tc.res, newText)
 			}
 		})
 	}

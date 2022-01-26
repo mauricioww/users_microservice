@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	"github.com/caarlos0/env/v6"
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/mauricioww/user_microsrv/http_srv/repository"
 	"github.com/mauricioww/user_microsrv/http_srv/service"
@@ -43,31 +43,31 @@ func main() {
 
 	defer level.Info(logger).Log("msg", "service ended")
 
-	var user_grpc, details_grpc *grpc.ClientConn
-	var grpc_err error
+	var userGRPC, detailsGRPC *grpc.ClientConn
+	var grpcErr error
 	{
-		// user_grpc
-		user_addr := fmt.Sprintf("%v:%v", cts.UserHost, cts.DetailsPort)
-		user_grpc, grpc_err = grpc.Dial(user_addr, grpc.WithInsecure())
-		if grpc_err != nil {
-			level.Error(logger).Log("gRPC", grpc_err)
+		// userGRPC
+		userAddr := fmt.Sprintf("%v:%v", cts.UserHost, cts.UserPort)
+		userGRPC, grpcErr = grpc.Dial(userAddr, grpc.WithInsecure())
+		if grpcErr != nil {
+			level.Error(logger).Log("gRPC", grpcErr)
 			os.Exit(-1)
 		}
 
-		// details_grpc
-		details_addr := fmt.Sprintf("%v:%v", cts.DetailsHost, cts.DetailsPort)
-		details_grpc, grpc_err = grpc.Dial(details_addr, grpc.WithInsecure())
-		if grpc_err != nil {
-			level.Error(logger).Log("gRPC", grpc_err)
+		// detailsGRPC
+		detailsAddr := fmt.Sprintf("%v:%v", cts.DetailsHost, cts.DetailsPort)
+		detailsGRPC, grpcErr = grpc.Dial(detailsAddr, grpc.WithInsecure())
+		if grpcErr != nil {
+			level.Error(logger).Log("gRPC", grpcErr)
 			os.Exit(-1)
 		}
 	}
 
 	ctx := context.Background()
-	var http_srv service.HttpService
+	var httpSrv service.HTTPServicer
 	{
-		repository := repository.NewHttpRepository(user_grpc, details_grpc, logger)
-		http_srv = service.NewHttpService(repository, logger)
+		repository := repository.NewHTTPRepository(userGRPC, detailsGRPC, logger)
+		httpSrv = service.NewHTTPService(repository, logger)
 	}
 
 	err := make(chan error)
@@ -78,12 +78,12 @@ func main() {
 		err <- fmt.Errorf("%s", <-c)
 	}()
 
-	http_endpoints := transport.MakeHttpEndpoints(http_srv)
+	httpEndpoints := transport.MakeHTTPEndpoints(httpSrv)
 
 	go func() {
 		fmt.Println("Listengin on port: 8080")
-		http_handler := transport.NewHTTPServer(ctx, http_endpoints)
-		err <- http.ListenAndServe(":8080", http_handler)
+		httpHandler := transport.NewHTTPServer(ctx, httpEndpoints)
+		err <- http.ListenAndServe(":8080", httpHandler)
 	}()
 
 	level.Error(logger).Log("exit: ", <-err)

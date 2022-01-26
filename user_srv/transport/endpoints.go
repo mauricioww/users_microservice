@@ -7,7 +7,8 @@ import (
 	"github.com/mauricioww/user_microsrv/user_srv/service"
 )
 
-type GrpcUserServiceEndpoints struct {
+// GrpcEndpoints stores the endpoinst for the current service
+type GrpcEndpoints struct {
 	CreateUser   endpoint.Endpoint
 	Authenticate endpoint.Endpoint
 	UpdateUser   endpoint.Endpoint
@@ -15,52 +16,53 @@ type GrpcUserServiceEndpoints struct {
 	DeleteUser   endpoint.Endpoint
 }
 
-func MakeGrpcUserServiceEndpoints(grpc_user_srv service.GrpcUserService) GrpcUserServiceEndpoints {
-	return GrpcUserServiceEndpoints{
-		CreateUser:   makeCreateUserEndpoint(grpc_user_srv),
-		Authenticate: makeAuthenticateEndpoint(grpc_user_srv),
-		UpdateUser:   makeUpdateUserEndpoint(grpc_user_srv),
-		GetUser:      makeGetUserEndpoint(grpc_user_srv),
-		DeleteUser:   makeDeleteUserEndpoint(grpc_user_srv),
+// MakeGrpcEndpoints returns a truct that stores the endpoints of the current service
+func MakeGrpcEndpoints(srv service.GrpcUserServicer) GrpcEndpoints {
+	return GrpcEndpoints{
+		CreateUser:   makeCreateUserEndpoint(srv),
+		Authenticate: makeAuthenticateEndpoint(srv),
+		UpdateUser:   makeUpdateUserEndpoint(srv),
+		GetUser:      makeGetUserEndpoint(srv),
+		DeleteUser:   makeDeleteUserEndpoint(srv),
 	}
 }
 
-func makeCreateUserEndpoint(srv service.GrpcUserService) endpoint.Endpoint {
+func makeCreateUserEndpoint(srv service.GrpcUserServicer) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req, _ := request.(CreateUserRequest)
+		req := request.(CreateUserRequest)
 		res, err := srv.CreateUser(ctx, req.Email, req.Password, req.Age)
-		return CreateUserResponse{Id: res}, err
+		return CreateUserResponse{UserID: res}, err
 	}
 }
 
-func makeAuthenticateEndpoint(srv service.GrpcUserService) endpoint.Endpoint {
+func makeAuthenticateEndpoint(srv service.GrpcUserServicer) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req, _ := request.(AuthenticateRequest)
+		req := request.(AuthenticateRequest)
 		res, err := srv.Authenticate(ctx, req.Email, req.Password)
-		return AuthenticateResponse{Id: res}, err
+		return AuthenticateResponse{Success: res}, err
 	}
 }
 
-func makeUpdateUserEndpoint(srv service.GrpcUserService) endpoint.Endpoint {
+func makeUpdateUserEndpoint(srv service.GrpcUserServicer) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req, _ := request.(UpdateUserRequest)
-		res, err := srv.UpdateUser(ctx, req.Id, req.Email, req.Password, req.Age)
+		req := request.(UpdateUserRequest)
+		res, err := srv.UpdateUser(ctx, req.UserID, req.Email, req.Password, req.Age)
 		return UpdateUserResponse{Success: res}, err
 	}
 }
 
-func makeGetUserEndpoint(srv service.GrpcUserService) endpoint.Endpoint {
+func makeGetUserEndpoint(srv service.GrpcUserServicer) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req, _ := request.(GetUserRequest)
-		res, err := srv.GetUser(ctx, req.UserId)
+		req := request.(GetUserRequest)
+		res, err := srv.GetUser(ctx, req.UserID)
 		return GetUserResponse{Email: res.Email, Password: res.Password, Age: res.Age}, err
 	}
 }
 
-func makeDeleteUserEndpoint(srv service.GrpcUserService) endpoint.Endpoint {
+func makeDeleteUserEndpoint(srv service.GrpcUserServicer) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req, _ := request.(DeleteUserRequest)
-		res, err := srv.DeleteUser(ctx, req.UserId)
+		req := request.(DeleteUserRequest)
+		res, err := srv.DeleteUser(ctx, req.UserID)
 		return DeleteUserResponse{Success: res}, err
 	}
 }

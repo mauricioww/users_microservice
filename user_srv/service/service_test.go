@@ -2,8 +2,10 @@ package service_test
 
 import (
 	"context"
+	"os"
 	"testing"
 
+	"github.com/go-kit/log"
 	"github.com/mauricioww/user_microsrv/errors"
 	"github.com/mauricioww/user_microsrv/helpers"
 	"github.com/mauricioww/user_microsrv/user_srv/entities"
@@ -13,19 +15,19 @@ import (
 )
 
 func TestCreateUser(t *testing.T) {
-	var grpc_user_srv service.GrpcUserService
+	var srv service.GrpcUserServicer
+	logger := log.NewLogfmtLogger(os.Stderr)
+	repoMock := new(service.UserRepositoryMock)
+	srv = service.NewGrpcUserService(repoMock, logger)
 
-	user_repo_mock := new(service.UserRepositoryMock)
-	grpc_user_srv = service.NewGrpcUserService(user_repo_mock, service.InitLogger())
-
-	test_cases := []struct {
-		test_name string
-		data      entities.User
-		res       int
-		err       error
+	testCases := []struct {
+		testName string
+		data     entities.User
+		res      int
+		err      error
 	}{
 		{
-			test_name: "create user successfully",
+			testName: "create user successfully",
 			data: entities.User{
 				Email:    "email@domain.com",
 				Password: "qwerty",
@@ -34,7 +36,7 @@ func TestCreateUser(t *testing.T) {
 			err: nil,
 		},
 		{
-			test_name: "empty email error",
+			testName: "empty email error",
 			data: entities.User{
 				Password: "qwerty",
 				Age:      23,
@@ -43,7 +45,7 @@ func TestCreateUser(t *testing.T) {
 			err: errors.NewBadRequestEmailError(),
 		},
 		{
-			test_name: "empty password error",
+			testName: "empty password error",
 			data: entities.User{
 				Email: "email@domain.com",
 				Age:   23,
@@ -53,15 +55,15 @@ func TestCreateUser(t *testing.T) {
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			ctx := context.Background()
 			assert := assert.New(t)
 
 			// act
-			user_repo_mock.On("CreateUser", ctx, mock.AnythingOfType("entities.User")).Return(tc.res, nil)
-			res, err := grpc_user_srv.CreateUser(ctx, tc.data.Email, tc.data.Password, tc.data.Age)
+			repoMock.On("CreateUser", ctx, mock.AnythingOfType("entities.User")).Return(tc.res, nil)
+			res, err := srv.CreateUser(ctx, tc.data.Email, tc.data.Password, tc.data.Age)
 
 			// assert
 			assert.Equal(tc.res, res)
@@ -71,76 +73,73 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestAuthenticate(t *testing.T) {
-	var grpc_user_srv service.GrpcUserService
+	var srv service.GrpcUserServicer
+	logger := log.NewLogfmtLogger(os.Stderr)
+	repoMock := new(service.UserRepositoryMock)
+	srv = service.NewGrpcUserService(repoMock, logger)
 
-	user_repo_mock := new(service.UserRepositoryMock)
-	grpc_user_srv = service.NewGrpcUserService(user_repo_mock, service.InitLogger())
-
-	test_cases := []struct {
-		test_name string
-		data      *entities.Session
-		repo_pwd  string
-		repo_err  error
-		res       int
-		err       error
+	testCases := []struct {
+		testName string
+		data     *entities.Session
+		repoPwd  string
+		repoErr  error
+		res      bool
+		err      error
 	}{
 		{
-			test_name: "authenticate successfully",
+			testName: "authenticate successfully",
 			data: &entities.Session{
 				Email:    "user@email.com",
 				Password: "secret",
 			},
-			repo_pwd: "secret",
+			res:     true,
+			repoPwd: "secret",
 		},
 		{
-			test_name: "no pasword error",
+			testName: "no pasword error",
 			data: &entities.Session{
 				Email: "user@email.com",
 			},
-			res: -1,
 			err: errors.NewBadRequestPasswordError(),
 		},
 		{
-			test_name: "no email error",
+			testName: "no email error",
 			data: &entities.Session{
 				Password: "password",
 			},
-			res: -1,
 			err: errors.NewBadRequestEmailError(),
 		},
 		{
-			test_name: "user not found error",
+			testName: "user not found error",
 			data: &entities.Session{
 				Email:    "use@email.com",
 				Password: "password",
 			},
-			repo_pwd: "password",
-			repo_err: errors.NewUserNotFoundError(),
-			res:      -1,
-			err:      errors.NewUserNotFoundError(),
+			repoPwd: "password",
+			repoErr: errors.NewUserNotFoundError(),
+			err:     errors.NewUserNotFoundError(),
 		},
 		{
-			test_name: "invalid pasword error",
+			testName: "invalid pasword error",
 			data: &entities.Session{
 				Email:    "user@email.com",
 				Password: "password",
 			},
-			repo_pwd: "incorrect_password",
-			res:      -1,
-			err:      errors.NewUnauthenticatedError(),
+			repoPwd: "incorrect_password",
+			err:     errors.NewUnauthenticatedError(),
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			ctx := context.Background()
 			assert := assert.New(t)
-			tc.repo_pwd = helpers.Cipher(tc.repo_pwd)
+			tc.repoPwd = helpers.Cipher(tc.repoPwd)
 
 			// act
-			user_repo_mock.On("Authenticate", ctx, tc.data).Return(tc.repo_pwd, tc.repo_err)
-			res, err := grpc_user_srv.Authenticate(ctx, tc.data.Email, tc.data.Password)
+			repoMock.On("Authenticate", ctx, tc.data).Return(tc.repoPwd, tc.repoErr)
+			res, err := srv.Authenticate(ctx, tc.data.Email, tc.data.Password)
 
 			// assert
 			assert.Equal(tc.res, res)
@@ -150,22 +149,22 @@ func TestAuthenticate(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
-	var grpc_user_srv service.GrpcUserService
+	var srv service.GrpcUserServicer
+	logger := log.NewLogfmtLogger(os.Stderr)
+	repoMock := new(service.UserRepositoryMock)
+	srv = service.NewGrpcUserService(repoMock, logger)
 
-	user_repo_mock := new(service.UserRepositoryMock)
-	grpc_user_srv = service.NewGrpcUserService(user_repo_mock, service.InitLogger())
-
-	test_cases := []struct {
-		test_name string
-		data      entities.Update
-		repo_res  entities.User
-		res       bool
-		err       error
+	testCases := []struct {
+		testName string
+		data     entities.Update
+		repo_res entities.User
+		res      bool
+		err      error
 	}{
 		{
-			test_name: "update all fields",
+			testName: "update all fields",
 			data: entities.Update{
-				UserId: 0,
+				UserID: 0,
 				User: entities.User{
 					Email:    "new_email@domain.com",
 					Password: "new_password",
@@ -181,9 +180,9 @@ func TestUpdateUser(t *testing.T) {
 			err: nil,
 		},
 		{
-			test_name: "no password error",
+			testName: "no password error",
 			data: entities.Update{
-				UserId: 0,
+				UserID: 0,
 				User: entities.User{
 					Email: "new_email@domain.com",
 					Age:   20,
@@ -193,9 +192,9 @@ func TestUpdateUser(t *testing.T) {
 			err: errors.NewBadRequestPasswordError(),
 		},
 		{
-			test_name: "no email error",
+			testName: "no email error",
 			data: entities.Update{
-				UserId: 0,
+				UserID: 0,
 				User: entities.User{
 					Password: "new_password",
 					Age:      20,
@@ -206,16 +205,16 @@ func TestUpdateUser(t *testing.T) {
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			ctx := context.Background()
 			assert := assert.New(t)
 			tc.repo_res.Password = helpers.Cipher(tc.data.Password)
 
 			// act
-			user_repo_mock.On("UpdateUser", ctx, mock.Anything).Return(tc.repo_res, tc.err)
-			res, err := grpc_user_srv.UpdateUser(ctx, tc.data.UserId, tc.data.Email, tc.data.Password, tc.data.Age)
+			repoMock.On("UpdateUser", ctx, mock.Anything).Return(tc.repo_res, tc.err)
+			res, err := srv.UpdateUser(ctx, tc.data.UserID, tc.data.Email, tc.data.Password, tc.data.Age)
 
 			// assert
 			assert.Equal(tc.err, err)
@@ -225,20 +224,20 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestGetUser(t *testing.T) {
-	var grpc_user_srv service.GrpcUserService
+	var srv service.GrpcUserServicer
+	logger := log.NewLogfmtLogger(os.Stderr)
+	repoMock := new(service.UserRepositoryMock)
+	srv = service.NewGrpcUserService(repoMock, logger)
 
-	user_repo_mock := new(service.UserRepositoryMock)
-	grpc_user_srv = service.NewGrpcUserService(user_repo_mock, service.InitLogger())
-
-	test_cases := []struct {
-		test_name string
-		data      int
-		res       entities.User
-		err       error
+	testCases := []struct {
+		testName string
+		data     int
+		res      entities.User
+		err      error
 	}{
 		{
-			test_name: "user found",
-			data:      0,
+			testName: "user found",
+			data:     0,
 			res: entities.User{
 				Email:    "user@email.com",
 				Password: "password",
@@ -247,22 +246,22 @@ func TestGetUser(t *testing.T) {
 			err: nil,
 		},
 		{
-			test_name: "user not found error",
-			data:      -1,
-			res:       entities.User{},
-			err:       errors.NewUserNotFoundError(),
+			testName: "user not found error",
+			data:     -1,
+			res:      entities.User{},
+			err:      errors.NewUserNotFoundError(),
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			ctx := context.Background()
 			assert := assert.New(t)
 
 			// act
-			user_repo_mock.On("GetUser", ctx, tc.data).Return(tc.res, tc.err)
-			res, err := grpc_user_srv.GetUser(ctx, tc.data)
+			repoMock.On("GetUser", ctx, tc.data).Return(tc.res, tc.err)
+			res, err := srv.GetUser(ctx, tc.data)
 			tc.res.Password = helpers.Decipher(tc.res.Password)
 
 			// assert
@@ -273,40 +272,40 @@ func TestGetUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
-	var grpc_user_srv service.GrpcUserService
+	var srv service.GrpcUserServicer
+	logger := log.NewLogfmtLogger(os.Stderr)
+	repoMock := new(service.UserRepositoryMock)
+	srv = service.NewGrpcUserService(repoMock, logger)
 
-	user_repo_mock := new(service.UserRepositoryMock)
-	grpc_user_srv = service.NewGrpcUserService(user_repo_mock, service.InitLogger())
-
-	test_cases := []struct {
-		test_name string
-		data      int
-		res       bool
-		err       error
+	testCases := []struct {
+		testName string
+		data     int
+		res      bool
+		err      error
 	}{
 		{
-			test_name: "delete user success",
-			data:      1,
-			res:       true,
-			err:       nil,
+			testName: "delete user success",
+			data:     1,
+			res:      true,
+			err:      nil,
 		},
 		{
-			test_name: "user does not exist error",
-			data:      -1,
-			res:       false,
-			err:       errors.NewUserNotFoundError(),
+			testName: "user does not exist error",
+			data:     -1,
+			res:      false,
+			err:      errors.NewUserNotFoundError(),
 		},
 	}
 
-	for _, tc := range test_cases {
-		t.Run(tc.test_name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
 			// prepare
 			ctx := context.Background()
 			assert := assert.New(t)
 
 			// act
-			user_repo_mock.On("DeleteUser", ctx, tc.data).Return(tc.res, tc.err)
-			res, err := grpc_user_srv.DeleteUser(ctx, tc.data)
+			repoMock.On("DeleteUser", ctx, tc.data).Return(tc.res, tc.err)
+			res, err := srv.DeleteUser(ctx, tc.data)
 
 			// assert
 			assert.Equal(tc.res, res)

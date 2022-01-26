@@ -1,52 +1,54 @@
 package helpers
 
 const (
-	shift        = 11
-	alphabet_len = 26
+	shift       = 11
+	alphabetLen = 26
 )
 
+// Cipher func uses the Ceaser algorithm to transform the plain text
 func Cipher(message string) string {
 	len := len(message)
-	ciphered_text := make([]rune, len)
+	cipheredText := make([]rune, len)
 	for index, char := range message {
-		if is_lower(char) {
-			ciphered_text[index] = (char-'a'+shift)%alphabet_len + 'a'
-		} else if is_upper(char) {
-			ciphered_text[index] = (char-'A'+shift)%alphabet_len + 'A'
+		if isLower(char) {
+			cipheredText[index] = (char-'a'+shift)%alphabetLen + 'a'
+		} else if isUpper(char) {
+			cipheredText[index] = (char-'A'+shift)%alphabetLen + 'A'
 		} else {
-			ciphered_text[index] = char
+			cipheredText[index] = char
 		}
 	}
-	return string(ciphered_text)
+	return string(cipheredText)
 }
 
+// Decipher func uses the Ceaser algorithm to return the original plain text
 func Decipher(stream string) string {
 	len := len(stream)
-	plain_text := make([]rune, len)
+	plainText := make([]rune, len)
 	for index, char := range stream {
-		if is_lower(char) {
+		if isLower(char) {
 			offset := char - 'a' - shift
 			if offset < 0 {
-				offset += alphabet_len
+				offset += alphabetLen
 			}
-			plain_text[index] = offset%alphabet_len + 'a'
-		} else if is_upper(char) {
+			plainText[index] = offset%alphabetLen + 'a'
+		} else if isUpper(char) {
 			offset := char - 'A' - shift
 			if offset < 0 {
-				offset += alphabet_len
+				offset += alphabetLen
 			}
-			plain_text[index] = offset%alphabet_len + 'A'
+			plainText[index] = offset%alphabetLen + 'A'
 		} else {
-			plain_text[index] = char
+			plainText[index] = char
 		}
 	}
-	return string(plain_text)
+	return string(plainText)
 }
 
-func is_lower(char rune) bool {
+func isLower(char rune) bool {
 	return char >= 'a' && char <= 'z'
 }
 
-func is_upper(char rune) bool {
+func isUpper(char rune) bool {
 	return char >= 'A' && char <= 'Z'
 }

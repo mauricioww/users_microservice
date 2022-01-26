@@ -48,18 +48,18 @@ func main() {
 	var db *sql.DB
 	{
 		var err error
-		mysql_addr := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v", cts.DbUser, cts.DbPwd, cts.DbHost, cts.DbPort, cts.DbName)
-		db, err = sql.Open("mysql", mysql_addr)
+		mysqlAddr := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v", cts.DbUser, cts.DbPwd, cts.DbHost, cts.DbPort, cts.DbName)
+		db, err = sql.Open("mysql", mysqlAddr)
 		if err != nil {
 			level.Error(logger).Log("exit", err)
 			os.Exit(-1)
 		}
 	}
 
-	var grpc_user_srv service.GrpcUserService
+	var srv service.GrpcUserServicer
 	{
-		mysql_repository := repository.NewUserRepository(db, logger)
-		grpc_user_srv = service.NewGrpcUserService(mysql_repository, logger)
+		mysqlRepo := repository.NewUserRepository(db, logger)
+		srv = service.NewGrpcUserService(mysqlRepo, logger)
 	}
 
 	errs := make(chan error)
@@ -70,9 +70,9 @@ func main() {
 		errs <- fmt.Errorf("%s", <-c)
 	}()
 
-	grpc_endpoints := transport.MakeGrpcUserServiceEndpoints(grpc_user_srv)
-	grpc_server := transport.NewGrpcUserServer(grpc_endpoints)
-	grpc_listener, err := net.Listen("tcp", ":50051")
+	endpoints := transport.MakeGrpcEndpoints(srv)
+	grpcServer := transport.NewGrpcUserServer(endpoints)
+	listener, err := net.Listen("tcp", ":50051")
 
 	if err != nil {
 		logger.Log("Error listening: ", err)
@@ -81,8 +81,8 @@ func main() {
 
 	go func() {
 		server := grpc.NewServer()
-		userpb.RegisterUserServiceServer(server, grpc_server)
-		if err := server.Serve(grpc_listener); err != nil {
+		userpb.RegisterUserServiceServer(server, grpcServer)
+		if err := server.Serve(listener); err != nil {
 			logger.Log("Error serving", err)
 		}
 		level.Info(logger).Log("info", "grpc server started")

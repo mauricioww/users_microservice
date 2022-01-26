@@ -1,21 +1,22 @@
 package transport
 
-type (
-	SetUserDetailsRequest struct {
-		UserId       int
-		Country      string
-		City         string
-		MobileNumber string
-		Married      bool
-		Height       float32
-		Weigth       float32
-	}
+// SetUserDetailsRequest stores the data sent to gRPC SetUserDetails method
+type SetUserDetailsRequest struct {
+	UserID       int
+	Country      string
+	City         string
+	MobileNumber string
+	Married      bool
+	Height       float32
+	Weigth       float32
+}
 
-	GetUserDetailsRequest struct {
-		UserId int
-	}
+// GetUserDetailsRequest stores the data sent to gRPC GetUserDetails method
+type GetUserDetailsRequest struct {
+	UserID int
+}
 
-	DeleteUserDetailsRequest struct {
-		UserId int
-	}
-)
+// DeleteUserDetailsRequest stores the data sent to gRPC DeleteUserDetails method
+type DeleteUserDetailsRequest struct {
+	UserID int
+}
