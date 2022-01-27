@@ -64,7 +64,12 @@ func TestCreateUser(t *testing.T) {
 				e, _ := tc.srvErr.(errors.ErrorResolver)
 				tc.err = status.Error(e.GrpcCode(), tc.srvErr.Error())
 			} else {
-				tc.userRes = &userpb.CreateUserResponse{Id: int32(tc.srvRes)}
+				tc.userRes = &userpb.CreateUserResponse{
+					Id:       int32(tc.srvRes),
+					Email:    tc.userReq.GetEmail(),
+					Password: tc.userReq.GetPassword(),
+					Age:      tc.userReq.GetAge(),
+				}
 			}
 
 			// act
@@ -271,6 +276,7 @@ func TestGetUser(t *testing.T) {
 				tc.err = status.Error(e.GrpcCode(), tc.srvErr.Error())
 			} else {
 				tc.res = &userpb.GetUserResponse{
+					Id:       tc.data.GetId(),
 					Email:    tc.srvRes.Email,
 					Password: tc.srvRes.Password,
 					Age:      uint32(tc.srvRes.Age),
