@@ -29,13 +29,14 @@ require (
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.3
 	github.com/stretchr/testify v1.7.0
 	go.mongodb.org/mongo-driver v1.8.1
 	golang.org/x/crypto v0.0.0-20211202192323-5770296d904e
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
 	golang.org/x/sys v0.0.0-20210917161153-d61c044b1678 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20210917145530-b395a37504d4 // indirect
-	google.golang.org/grpc v1.42.0 // indirect
+	google.golang.org/genproto v0.0.0-20220118154757-00ab72f36ad5 // indirect
+	google.golang.org/grpc v1.43.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 )

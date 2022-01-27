@@ -2,6 +2,8 @@ syntax = "proto3";
 
 option go_package = "./;userpb";
 
+import "google/api/annotations.proto";
+
 message CreateUserRequest {
     string email = 1;
     string password = 3;
@@ -10,6 +12,9 @@ message CreateUserRequest {
 
 message CreateUserResponse {
     int32 id = 1;
+    string email = 3;
+    string password = 5;
+    uint32 age = 7;
 }
 
 message AuthenticateRequest {
@@ -37,9 +42,10 @@ message GetUserRequest {
 }
 
 message GetUserResponse {
-    string email = 1;
-    string password = 3;
-    uint32 age = 5;
+    uint32 id = 1;
+    string email = 3;
+    string password = 5;
+    uint32 age = 7;
 }
 
 message DeleteUserRequest {
@@ -51,9 +57,38 @@ message DeleteUserResponse {
 }
 
 service UserService {
-    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {};
-    rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse) {};
-    rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {};
-    rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
-    rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {};
+
+    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
+        option (google.api.http) = {
+            post: "/api/users"
+            body:  "*"
+        };
+    }
+
+    rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse) {
+        option (google.api.http) = {
+            post: "/api/auth",
+            body: "*"
+        };
+    }
+
+    rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {
+        option (google.api.http) = {
+            put: "/api/users/{id}"
+            body: "*"
+        };
+    }
+
+    rpc GetUser(GetUserRequest) returns (GetUserResponse) {
+        option (google.api.http) = {
+            get: "/api/users/{id}"
+        };
+    }
+
+    rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {
+        option (google.api.http) = {
+            delete: "/api/users/{id}"
+        };
+    };
+
 }

@@ -31,7 +31,7 @@ func makeCreateUserEndpoint(srv service.GrpcUserServicer) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(CreateUserRequest)
 		res, err := srv.CreateUser(ctx, req.Email, req.Password, req.Age)
-		return CreateUserResponse{UserID: res}, err
+		return CreateUserResponse{UserID: res, Email: req.Email, Password: req.Password, Age: req.Age}, err
 	}
 }
 
@@ -55,7 +55,7 @@ func makeGetUserEndpoint(srv service.GrpcUserServicer) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(GetUserRequest)
 		res, err := srv.GetUser(ctx, req.UserID)
-		return GetUserResponse{Email: res.Email, Password: res.Password, Age: res.Age}, err
+		return GetUserResponse{UserID: req.UserID, Email: res.Email, Password: res.Password, Age: res.Age}, err
 	}
 }
 

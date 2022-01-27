@@ -74,7 +74,7 @@ func decodeCreateUserRequest(_ context.Context, request interface{}) (interface{
 
 func encodeCreateUserResponse(_ context.Context, response interface{}) (interface{}, error) {
 	res := response.(CreateUserResponse)
-	return &userpb.CreateUserResponse{Id: int32(res.UserID)}, nil
+	return &userpb.CreateUserResponse{Id: int32(res.UserID), Email: res.Email, Password: res.Password, Age: uint32(res.Age)}, nil
 }
 
 func decodeAuthenticateRequest(_ context.Context, request interface{}) (interface{}, error) {
@@ -94,7 +94,6 @@ func decodeAuthenticateRequest(_ context.Context, request interface{}) (interfac
 
 func encodeAuthenticateResponse(_ context.Context, response interface{}) (interface{}, error) {
 	res := response.(AuthenticateResponse)
-
 	return &userpb.AuthenticateResponse{Success: res.Success}, nil
 }
 
@@ -117,7 +116,6 @@ func decodeUpdateUserRequest(_ context.Context, request interface{}) (interface{
 
 func encondeUpdateUserResponse(_ context.Context, response interface{}) (interface{}, error) {
 	res := response.(UpdateUserResponse)
-
 	return &userpb.UpdateUserResponse{Success: res.Success}, nil
 }
 
@@ -137,12 +135,7 @@ func decodeGetUserRequest(_ context.Context, request interface{}) (interface{}, 
 
 func encodeGetUserResponse(_ context.Context, response interface{}) (interface{}, error) {
 	res := response.(GetUserResponse)
-
-	return &userpb.GetUserResponse{
-		Email:    res.Email,
-		Password: res.Password,
-		Age:      uint32(res.Age),
-	}, nil
+	return &userpb.GetUserResponse{Id: uint32(res.UserID), Email: res.Email, Password: res.Password, Age: uint32(res.Age)}, nil
 }
 
 func decodeDeleteUserRequest(_ context.Context, request interface{}) (interface{}, error) {
@@ -161,7 +154,6 @@ func decodeDeleteUserRequest(_ context.Context, request interface{}) (interface{
 
 func encondeDeleteUserResponse(_ context.Context, response interface{}) (interface{}, error) {
 	res := response.(DeleteUserResponse)
-
 	return &userpb.DeleteUserResponse{Success: res.Success}, nil
 }
 

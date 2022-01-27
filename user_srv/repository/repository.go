@@ -16,7 +16,8 @@ const (
 	`
 
 	authenticateSQL = `
-		SELECT u.pwd_hash FROM USERS u WHERE u.email = ?
+		SELECT u.pwd_hash FROM USERS u 
+			WHERE u.email = ? AND u.active = true
 	`
 
 	updateUserSQL = `

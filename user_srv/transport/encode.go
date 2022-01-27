@@ -2,7 +2,10 @@ package transport
 
 // CreateUserResponse stores the data that gRPC CreateUser method will return
 type CreateUserResponse struct {
-	UserID int
+	UserID   int
+	Email    string
+	Password string
+	Age      int
 }
 
 // AuthenticateResponse stores the data that gRPC Authenticate method will return
@@ -17,6 +20,7 @@ type UpdateUserResponse struct {
 
 // GetUserResponse stores the data that gRPC GetUser method will return
 type GetUserResponse struct {
+	UserID   int
 	Email    string
 	Password string
 	Age      int
