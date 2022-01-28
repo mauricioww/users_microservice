@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/caarlos0/env"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -22,11 +21,14 @@ import (
 
 func main() {
 
-	cts := constants{}
-
-	if err := env.Parse(&cts); err != nil {
-		fmt.Printf("%+v\n", err)
+	cts := constants{
+		UserHost: "localhost",
+		UserPort: 50051,
 	}
+
+	// if err := env.Parse(&cts); err != nil {
+	// 	fmt.Printf("%+v\n", err)
+	// }
 
 	var logger log.Logger
 	{
@@ -78,11 +80,10 @@ func main() {
 
 	go func() {
 		fmt.Println("Listenign on port: 8080")
-		gwServer := &http.Server{
-			Addr:    ":8080",
-			Handler: gmux,
-		}
-		errs <- gwServer.ListenAndServe()
+		http.Handle("/", gmux)
+		f := http.FileServer(http.Dir("./swagger/"))
+		http.Handle("/specs/", http.StripPrefix("/specs/", f))
+		errs <- http.ListenAndServe(":8080", nil)
 	}()
 
 	level.Error(logger).Log("exit: ", <-errs)
@@ -99,8 +100,6 @@ func errorHandler(_ context.Context, _ *runtime.ServeMux, _ runtime.Marshaler, w
 }
 
 type constants struct {
-	UserHost    string `env:"USER_SERVER,required"`
-	UserPort    int    `env:"USER_PORT" envDefault:"50051"`
-	DetailsHost string `env:"DETAILS_SERVER,required"`
-	DetailsPort int    `env:"DETAILS_PORT" envDefault:"50051"`
+	UserHost string `env:"USER_SERVER,required"`
+	UserPort int    `env:"USER_PORT" envDefault:"50051"`
 }

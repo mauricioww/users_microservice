@@ -3,56 +3,130 @@ syntax = "proto3";
 option go_package = "./;userpb";
 
 import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/api/field_behavior.proto";
+
+// These annotations are used when generating the OpenAPI file.
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+      version: "1.0";
+    };
+    
+    external_docs: {
+      url: "https://github.com/mauricioww/users_microservice/tree/v2-develop";
+      description: "Microservice using gRPC-Gateway";
+    }
+    
+    schemes: HTTP;
+
+    consumes: "application/json";
+    
+    produces: "application/json";
+};
 
 message CreateUserRequest {
-    string email = 1;
-    string password = 3;
-    uint32 age = 5;
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+        example: "{\"email\": \"user@email.com\", \"password\": \"secret_word\", \"age\": 23}"
+    };  
+
+    // Email of the new user
+    string email = 1 [(google.api.field_behavior) = REQUIRED];
+    
+    // Password of the new user
+    string password = 3 [(google.api.field_behavior) = REQUIRED];
+    
+    // Age of the new user
+    uint32 age = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateUserResponse {
-    int32 id = 1;
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+        example: "{\"id\": 1, \"email\": \"new_user@email.com\", \"password\": \"secret_word\", \"age\": 23}"
+    }; 
+
+    // Assigned ID to new user
+    int32 id = 1 ;
+
+    // User email
     string email = 3;
+
+    // User password
     string password = 5;
+
+    // User age
     uint32 age = 7;
 }
 
 message AuthenticateRequest {
-    string email = 1;
-    string password = 3;
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+        example: "{\"email\": \"user@email.com\", \"password\": \"secret_word\" }"
+    };    
+
+    // User email
+    string email = 1 [(google.api.field_behavior) = REQUIRED];
+
+    // Password email
+    string password = 3 [(google.api.field_behavior) = REQUIRED];
 }
 
 message AuthenticateResponse {
+    // True or false according to the provided credentials
     bool success = 1;
 }
 
 message UpdateUserRequest {
-    uint32 id = 1;
-    string email = 3;
-    string password = 5;
-    uint32 age = 7;
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+        example: "{\"email\": \"other_user@email.com\", \"password\": \"new_secret_word\", \"age\": 24}"
+    };
+
+    // User which will be updated
+    uint32 id = 1 [(google.api.field_behavior) = REQUIRED];
+
+    // New user email
+    string email = 3 [(google.api.field_behavior) = REQUIRED];
+    
+    // New user password
+    string password = 5 [(google.api.field_behavior) = REQUIRED];
+
+    // New user age
+    uint32 age = 7 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message UpdateUserResponse {
+    // True if did not show up any error, otherwise false
     bool success = 1;
 }
 
 message GetUserRequest {
-    uint32 id = 1;
+    // UserID which its information is interesting
+    uint32 id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message GetUserResponse {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+        example: "{\"id\": 1, \"email\": \"user@email.com\", \"password\": \"secret_word\", \"age\": 23}"
+    }; 
+
+    // UserID of the current user
     uint32 id = 1;
+
+    // User email
     string email = 3;
+    
+    // User password
     string password = 5;
+    
+    // User age
     uint32 age = 7;
 }
 
 message DeleteUserRequest {
-    uint32 id = 1;
+    // UserID which will be deleted
+    uint32 id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message DeleteUserResponse {
+    // True if did not show up any error, otherwise false
     bool success = 1;
 }
 
